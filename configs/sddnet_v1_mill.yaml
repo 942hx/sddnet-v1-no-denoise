@@ -1,0 +1,46 @@
+# Relative paths are resolved against the project root on both Windows and Linux.
+seed: 42
+device: auto
+cpu_threads: 8
+output_dir: runs/sddnet_v1_mill
+
+data:
+  mill_root: data/MILLs-DSLR
+  lolv1_root: data/LOLDataset
+  lolv2_root: data/LOLv2
+  train_metadata: null
+  val_metadata: null
+  test_metadata: null
+  # c_gt = (raw illumination level - illum_min) / (illum_max - illum_min).
+  # Filename indices are ordinal supervision, not measured lux.
+  illum_min: 1.0
+  illum_max: 10.0
+
+train:
+  patch_size: 256
+  batch_size: 2  # Triplets; the model sees 6 RGB images per iteration.
+  num_workers: 4
+  learning_rate: 0.0001
+  epochs: 200
+  optimizer: AdamW
+  weight_decay: 0.0001
+  amp: true
+  tensorboard: true
+  augment: true
+  grad_clip: 1.0  # Applied after GradScaler.unscale_; null disables clipping.
+  log_every: 10
+  max_steps: null  # Debug only: cap iterations per epoch.
+
+loss:
+  ssim_weight: 0.2
+  scene_weight: 0.1
+  illumination_weight: 0.05
+  margin: 0.2
+
+eval:
+  num_workers: 0  # Avoid prefetching several native-resolution image pairs.
+  amp: true
+  tile_size: 512  # 0 means a single full-image forward pass.
+  tile_overlap: 32
+  max_samples: null
+  save_images: true
