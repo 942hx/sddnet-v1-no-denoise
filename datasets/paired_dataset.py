@@ -32,7 +32,8 @@ class ManifestPairedDataset(PairedDataset):
 
     def __init__(self, root, metadata, split):
         with Path(metadata).open(encoding="utf-8-sig", newline="") as stream:
-            self.rows = [r for r in csv.DictReader(stream) if r["split"] == split]
+            self.rows = [r for r in csv.DictReader(stream) if r["split"] == split
+                         and str(r.get("valid", "true")).lower() in ("true", "1")]
         root = Path(root)
         super().__init__([(root / r["input_path"], root / r["gt_path"]) for r in self.rows])
 

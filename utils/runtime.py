@@ -10,7 +10,6 @@ from pathlib import Path
 import numpy as np
 import torch
 import yaml
-from torch.utils.data import DataLoader
 
 PROJECT_ROOT = Path(__file__).absolute().parents[1]
 
@@ -58,15 +57,6 @@ def choose_device(requested="auto") -> torch.device:
     return device
 
 
-def make_loader(dataset, batch_size=1, workers=0, shuffle=False, seed=42, pin_memory=False):
-    """Bound prefetching to keep Windows worker memory manageable."""
-    if workers < 0 or batch_size < 1:
-        raise ValueError("workers must be non-negative; batch_size must be positive.")
-    generator = torch.Generator().manual_seed(seed)
-    options = {"prefetch_factor": 1} if workers > 0 else {}
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=workers,
-                      pin_memory=pin_memory, worker_init_fn=seed_worker, generator=generator,
-                      drop_last=False, persistent_workers=False, **options)
 
 
 def make_scaler(enabled):

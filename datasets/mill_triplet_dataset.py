@@ -33,7 +33,6 @@ class MILLTripletDataset(Dataset):
                 raise ValueError(f"{record.filename}: level {record.illum_level} outside [{illum_min}, {illum_max}].")
             self.by_scene[record.scene_id].append(index)
         self.scenes = sorted(self.by_scene)
-        self.scene_index = {name: index for index, name in enumerate(self.scenes)}
         if len(self.scenes) < 2:
             raise ValueError("Triplets need at least two distinct scenes.")
         self.positives = {}
@@ -45,7 +44,8 @@ class MILLTripletDataset(Dataset):
                 raise ValueError(f"Scene {record.scene_id!r} needs at least two different illumination levels.")
             self.positives[index] = candidates
             negatives = [i for i, other in enumerate(self.records)
-                         if other.scene_id != record.scene_id and other.illum_level == record.illum_level]
+                         if other.scene_id != record.scene_id and other.illum_level == record.illum_level
+                         and not (record.group_id and other.group_id == record.group_id)]
             if not negatives:
                 raise ValueError(f"No different-scene negative at level {record.illum_level} for {record.filename}.")
             self.negatives[index] = negatives
@@ -79,4 +79,6 @@ class MILLTripletDataset(Dataset):
             result[f"{name}_gt"] = gt
             level = (record.illum_level - self.illum_min) / (self.illum_max - self.illum_min)
             result[f"{name}_level"] = torch.tensor([level], dtype=torch.float32)
+            result[f"{name}_filename"] = record.filename
+            result[f"{name}_content_id"] = record.content_id
         return result

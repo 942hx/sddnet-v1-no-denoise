@@ -31,6 +31,15 @@ class MILLRecord:
     illum_level: float
     input_path: Path
     gt_path: Path
+    group_id: str = ""
+
+    @property
+    def content_id(self):
+        return self.scene_id
+
+    @property
+    def level(self):
+        return self.illum_level
 
 
 def image_files(directory: Path) -> list[Path]:
@@ -99,6 +108,8 @@ def read_mill_metadata(path: Path, root: Path, split: str) -> list[MILLRecord]:
             continue
         if (split, str(row["filename"]).casefold()) in MILL_EXCLUSIONS:
             continue
+        if str(row.get("valid", "true")).lower() not in ("true", "1"):
+            raise ValueError(f"Invalid audited sample at row {line}; repair the audit before training.")
         scene = str(row["scene_id"]).strip() if row["scene_id"] is not None else ""
         try:
             level = float(row["illum_level"])
@@ -123,7 +134,7 @@ def read_mill_metadata(path: Path, root: Path, split: str) -> list[MILLRecord]:
         filename = str(row["filename"]).strip()
         if filename != paths[0].name:
             raise ValueError(f"Metadata row {line}: filename must equal input_path's basename.")
-        records.append(MILLRecord(filename, split, scene, level, *paths))
+        records.append(MILLRecord(filename, split, scene, level, *paths, str(row.get("group_id", "")).strip()))
     if not records:
         raise ValueError(f"No metadata rows for split={split!r} in {path}")
     return records
@@ -135,38 +146,6 @@ def mill_records(root: Path, split: str, metadata=None) -> list[MILLRecord]:
     return read_mill_metadata(Path(metadata), root, split) if metadata else scan_mill(root, split)
 
 
-def write_mill_metadata(root: Path, output: Path, splits, allow_unparsed=False) -> int:
-    """Generate labels or an editable template without guessing unknown scenes/levels."""
-    root, output = Path(root).absolute(), Path(output)
-    rows = []
-    for split in splits:
-        gt_index = stem_index(root / split / "gt")
-        for low in image_files(root / split / "input"):
-            if (split, low.name.casefold()) in MILL_EXCLUSIONS:
-                continue
-            try:
-                scene, level = parse_mill_filename(low.name)
-            except ValueError:
-                if not allow_unparsed:
-                    raise
-                scene, level = "", ""
-            gt = gt_index.get(scene.casefold()) if scene else gt_index.get(low.stem.casefold())
-            if gt is None and not allow_unparsed:
-                raise FileNotFoundError(f"Missing scene GT for {low}; use --allow-unparsed to make a template.")
-            rows.append(dict(filename=low.name, split=split, scene_id=scene, illum_level=level,
-                             input_path=low.relative_to(root).as_posix(),
-                             gt_path=gt.relative_to(root).as_posix() if gt else ""))
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8", newline="") as stream:
-        if output.suffix.lower() == ".csv":
-            writer = csv.DictWriter(stream, fieldnames=FIELDS)
-            writer.writeheader()
-            writer.writerows(rows)
-        elif output.suffix.lower() == ".json":
-            json.dump(rows, stream, ensure_ascii=False, indent=2)
-        else:
-            raise ValueError("Output metadata extension must be .csv or .json.")
-    return len(rows)
 
 
 def load_rgb(path: Path) -> Image.Image:

@@ -1,5 +1,6 @@
-# Fixed 100-complete-epoch experiment; separate from the legacy smoke run.
-run_dir: outputs/sddnet_v1_mill_100e
+# Single formal v1_clean experiment. No formal training is launched by --check-only/--smoke-test.
+arch_revision: v1_clean
+run_dir: outputs/sddnet_v1_clean_mill_100e
 seed: 42
 epochs: 100
 patch_size: 256
@@ -7,39 +8,36 @@ triplet_batch_size: 1
 accumulation_steps: 2
 num_workers: 0
 pin_memory: true
-persistent_workers: false
 amp: true
 optimizer: AdamW
-lr: 0.0001
+learning_rate: 0.0001
 weight_decay: 0.0001
-scheduler: CosineAnnealingLR
+scheduler: cosine
 min_lr: 0.000001
 grad_clip_norm: 1.0
-validate_every: 1
-save_every: 10
 early_stopping: false
 cpu_threads: 4
 require_environment: testmodel
-device: cuda
-model_revision: sddnet_v1_fixed_100e_1
+device: auto
 data:
   mill_root: data/MILLs-DSLR
   lolv1_root: data/LOLDataset
   lolv2_root: data/LOLv2
-  illum_min: 1
-  illum_max: 10
+  group_mapping: null
 loss:
   ssim_weight: 0.2
   scene_weight: 0.1
   illumination_weight: 0.05
   margin: 0.2
+  lambda_cons: 0.02
+  consistency_warmup_epochs: 5
+diagnostics:
+  patch_size: 128
 evaluation:
   precision: float32
-  tile_size: 0
   batch_size: 1
   save_images: true
-  lpips_net: alex
 profile:
-  input_shape: [1, 3, 400, 600]
+  shape: [1, 3, 400, 600]
   warmup: 20
   iterations: 100

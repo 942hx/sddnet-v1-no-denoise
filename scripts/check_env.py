@@ -36,15 +36,19 @@ def check_environment(cfg):
     report = {"executable": sys.executable, "prefix": sys.prefix, "python": sys.version,
               "platform": platform.platform(), "torch": torch.__version__, "torchvision": torchvision.__version__,
               "torch_cuda": torch.version.cuda, "cuda_available": torch.cuda.is_available(),
+              "cudnn_version": torch.backends.cudnn.version(),
               "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
               "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32,
               "ram_total_bytes": psutil.virtual_memory().total, "ram_available_bytes": psutil.virtual_memory().available,
               "commands": commands, "versions": versions, "cuda_tests_passed": False}
     if not torch.cuda.is_available():
+        report["cuda_test_status"] = "SKIP: CUDA unavailable; CPU checks only, CUDA/AMP not accepted"
         (directory / "environment_report.txt").write_text(json.dumps(report, indent=2), encoding="utf-8")
-        raise RuntimeError("CUDA unavailable: formal training is prohibited.")
+        (directory / "environment.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+        print(report["cuda_test_status"], flush=True)
+        return report
     torch.set_num_threads(int(cfg.get("cpu_threads", 4)))
-    device = torch.device(cfg.get("device", "cuda"))
+    device = torch.device("cuda" if cfg.get("device", "auto") == "auto" else cfg["device"])
     props = torch.cuda.get_device_properties(device)
     report.update(gpu=props.name, vram_total_bytes=props.total_memory,
                   vram_free_bytes=torch.cuda.mem_get_info(device)[0], compute_capability=[props.major, props.minor])
@@ -57,6 +61,7 @@ def check_environment(cfg):
     assert all(p.grad is not None and torch.isfinite(p.grad).all().item() for p in conv.parameters())
     torch.cuda.synchronize(device)
     report["cuda_tests_passed"] = True
+    report["cuda_test_status"] = "PASS: real CUDA matrix multiplication and convolution backward"
     setup_log = PROJECT_ROOT / "setup_commands.log"
     report["installation_commands"] = setup_log.read_text(encoding="utf-8") if setup_log.exists() else "NA: no setup log"
     (directory / "environment_report.txt").write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -72,7 +77,7 @@ def check_environment(cfg):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="configs/sddnet_v1_100e.yaml")
+    parser.add_argument("--config", default="configs/sddnet_v1.yaml")
     args = parser.parse_args()
     check_environment(experiment_config(args.config))
 

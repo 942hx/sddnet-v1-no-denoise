@@ -13,23 +13,10 @@ from tqdm import tqdm
 
 from datasets.paired_dataset import ManifestPairedDataset
 from models import SDDNetV1
-from utils.evaluation import write_json
-from utils.experiment import (DATASETS, MODEL_REVISION, assert_environment, experiment_config,
-                              file_hash, manifest_identity, run_path)
+from utils.io import write_json, write_csv
+from utils.experiment import (DATASETS, assert_environment, file_hash, manifest_identity, run_path, validate_checkpoint)
 from utils.metrics import average, image_metrics, load_lpips
-from utils.runtime import load_checkpoint, project_path
-
-
-def write_csv(path, rows):
-    """Persist real measurements as UTF-8 CSV, including explicit NA/reason fields."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    if not rows:
-        return
-    fields = list(dict.fromkeys(key for row in rows for key in row))
-    with path.open("w", encoding="utf-8-sig", newline="") as stream:
-        writer = csv.DictWriter(stream, fieldnames=fields)
-        writer.writeheader()
-        writer.writerows(rows)
+from utils.runtime import load_checkpoint, project_path, choose_device
 
 
 def dataset_root(cfg, dataset):
@@ -65,9 +52,8 @@ def evaluate_all(cfg, checkpoint_path):
     metrics_dir = directory / "metrics"
     metrics_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = load_checkpoint(checkpoint_path)
-    if checkpoint.get("model_revision") != MODEL_REVISION or checkpoint.get("manifest_hashes") != hashes:
-        raise ValueError("Checkpoint architecture or audited data manifests are incompatible.")
-    device = torch.device(cfg["device"])
+    validate_checkpoint(checkpoint,cfg,hashes)
+    device = choose_device(cfg['device'])
     torch.set_num_threads(cfg.get("cpu_threads", 4))
     model = SDDNetV1().to(device).float().eval()
     model.load_state_dict(checkpoint["model"], strict=True)
@@ -86,15 +72,15 @@ def evaluate_all(cfg, checkpoint_path):
                 low = sample["low"].unsqueeze(0).to(device)
                 gt = sample["gt"].unsqueeze(0).to(device)
                 # Full original resolution, FP32, one input, no GT/labels in forward.
-                outputs = model(low)
-                enhanced = outputs["enhanced"]
+                outputs = model(low,return_latents=True)
+                enhanced = outputs["enhanced"].clamp(0,1)
                 if not all(torch.isfinite(value).all().item() for value in outputs.values()):
                     raise FloatingPointError(f"Non-finite output for {metadata['filename']}")
                 before = image_metrics(low, gt, lpips_model, lpips_status.get("reason", ""))
                 after = image_metrics(enhanced, gt, lpips_model, lpips_status.get("reason", ""))
                 row = {"dataset": dataset, "split": "test", "filename": metadata["filename"],
                        "scene_id": metadata["scene_id"], "illum_level": metadata["illum_level"] or "NA",
-                       "checkpoint_sha256": checkpoint_sha, "checkpoint_epoch": checkpoint["epoch"],
+                       "checkpoint_sha256": checkpoint_sha, "checkpoint_epoch": checkpoint["completed_epoch"],
                        "c_hat": outputs["c_hat"].item(), "c_gt": "NA", "illumination_abs_error": "NA"}
                 if dataset == "mill":
                     row["c_gt"] = (float(metadata["illum_level"]) - 1) / 9
@@ -113,7 +99,8 @@ def evaluate_all(cfg, checkpoint_path):
                 del low, gt, outputs, enhanced
             for kind in ("input", "output"):
                 result = {"dataset": dataset, "kind": kind, "count": len(rows),
-                          "checkpoint_sha256": checkpoint_sha, "checkpoint_epoch": checkpoint["epoch"]}
+                          "checkpoint_sha256": checkpoint_sha, "checkpoint_epoch": checkpoint["completed_epoch"],
+                          "experiment": "MILL train; LOL is cross-dataset evaluation", "arch_revision": "v1_clean"}
                 for metric in ("PSNR_RGB", "SSIM_RGB", "LPIPS_Alex"):
                     result[metric] = average([r[f"{kind}_{metric}"] for r in rows])
                 result["LPIPS_reason"] = "; ".join(sorted({r[f"{kind}_LPIPS_reason"] for r in rows if r[f"{kind}_LPIPS_reason"]}))
@@ -149,7 +136,7 @@ def evaluate_all(cfg, checkpoint_path):
         levels.append(row)
     write_csv(metrics_dir / "mill_per_level.csv", levels)
     write_json(metrics_dir / "evaluation_status.json", {"failures": failures, "checkpoint": str(project_path(checkpoint_path)),
-               "checkpoint_sha256": checkpoint_sha, "epoch": checkpoint["epoch"], "complete": not failures,
+               "checkpoint_sha256": checkpoint_sha, "epoch": checkpoint["completed_epoch"], "complete": not failures,
                "protocol": "FP32, batch1, native RGB, no tiles/TTA/GT adjustment; arithmetic mean per image",
                "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
                "matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32,
@@ -159,13 +146,3 @@ def evaluate_all(cfg, checkpoint_path):
     print("Four-dataset evaluation completed with the same checkpoint.", flush=True)
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--config", default="configs/sddnet_v1_100e.yaml")
-    parser.add_argument("--checkpoint", required=True)
-    args = parser.parse_args()
-    evaluate_all(experiment_config(args.config), args.checkpoint)
-
-
-if __name__ == "__main__":
-    main()
