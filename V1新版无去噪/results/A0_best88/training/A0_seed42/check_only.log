@@ -1,0 +1,18 @@
+Environment verified: C:\software\anaconda3\envs\testmodel\python.exe
+Torch 2.5.1+cu121, torchvision 0.20.1+cu121, CUDA 12.1; NVIDIA GeForce RTX 4060 Laptop GPU; VRAM 8188 MiB
+Audit mill/train:   0%|          | 0/300 [00:00<?, ?it/s]Audit mill/train:   6%|5         | 17/300 [00:00<00:01, 162.79it/s]Audit mill/train:  12%|#2        | 37/300 [00:00<00:01, 181.90it/s]Audit mill/train:  19%|#9        | 57/300 [00:00<00:01, 189.73it/s]Audit mill/train:  25%|##5       | 76/300 [00:00<00:01, 175.71it/s]Audit mill/train:  32%|###2      | 96/300 [00:00<00:01, 182.81it/s]Audit mill/train:  38%|###8      | 115/300 [00:00<00:01, 184.13it/s]Audit mill/train:  45%|####5     | 135/300 [00:00<00:00, 187.05it/s]Audit mill/train:  51%|#####1    | 154/300 [00:00<00:00, 182.62it/s]Audit mill/train:  58%|#####7    | 173/300 [00:00<00:00, 176.35it/s]Audit mill/train:  64%|######3   | 191/300 [00:01<00:00, 170.50it/s]Audit mill/train:  70%|######9   | 209/300 [00:01<00:00, 167.19it/s]Audit mill/train:  75%|#######5  | 226/300 [00:01<00:00, 156.70it/s]Audit mill/train:  82%|########1 | 245/300 [00:01<00:00, 164.21it/s]Audit mill/train:  88%|########7 | 263/300 [00:01<00:00, 168.18it/s]Audit mill/train:  93%|#########3| 280/300 [00:01<00:00, 166.40it/s]Audit mill/train:  99%|#########9| 297/300 [00:01<00:00, 160.05it/s]                                                                    Audit mill/validation:   0%|          | 0/120 [00:00<?, ?it/s]Audit mill/validation:  14%|#4        | 17/120 [00:00<00:00, 162.63it/s]Audit mill/validation:  29%|##9       | 35/120 [00:00<00:00, 169.19it/s]Audit mill/validation:  46%|####5     | 55/120 [00:00<00:00, 182.53it/s]Audit mill/validation:  62%|######1   | 74/120 [00:00<00:00, 185.34it/s]Audit mill/validation:  78%|#######7  | 93/120 [00:00<00:00, 186.52it/s]Audit mill/validation:  93%|#########3| 112/120 [00:00<00:00, 178.21it/s]                                                                         Data audit passed=True; manifests={'mill': 'fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37'}
+........................................................................ [ 91%]
+.......                                                                  [100%]
+============================== warnings summary ===============================
+tests/test_acceptance.py::test_pretrained_lpips_identical_image
+  C:\software\anaconda3\envs\testmodel\lib\site-packages\torchvision\models\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.
+    warnings.warn(
+
+tests/test_acceptance.py::test_pretrained_lpips_identical_image
+  C:\software\anaconda3\envs\testmodel\lib\site-packages\torchvision\models\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.
+    warnings.warn(msg)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: E:\结构亮度结构解耦\V1新版无去噪\outputs\condition_ablation\A0_seed42\acceptance.xml -
+79 passed, 15 deselected, 2 warnings in 16.65s
+

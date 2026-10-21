@@ -1,0 +1,23 @@
+{
+  "modified_existing_source": [],
+  "added_source": [
+    {
+      "path": "scripts/freeze_review.py",
+      "action": "added",
+      "sha256": "4a5992deb1a308c1cc4d98f59bd1e39d50be8e9fbac1d0bd306efb6b6adae43b",
+      "reason": "Read-only review and no-update regression tests; core model/loss/training files unchanged"
+    },
+    {
+      "path": "tests/test_freeze_review.py",
+      "action": "added",
+      "sha256": "3182adaa7a9e38b16261709a229d259bbdfd13e5f62c63080572264e4c6c7b44",
+      "reason": "Read-only review and no-update regression tests; core model/loss/training files unchanged"
+    }
+  ],
+  "deleted": [],
+  "moved": [],
+  "tests": "9 PASS, 0 FAIL, 0 SKIP; no optimizer/backward/training",
+  "test_xml": "readonly_tests_statistics.xml",
+  "additional_statistics": "Saved predictions regrouped with constant-target correlations marked NA; initial tables preserved in statistics_initial; no inference or formal metrics repeated",
+  "complete_at": "2026-10-21T15:19:28.3372219+08:00"
+}

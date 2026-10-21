@@ -1,0 +1,32 @@
+{
+  "dataset": "mill",
+  "split": "validation",
+  "view": "full_native_resolution",
+  "count": 120,
+  "PSNR_RGB": 33.16664658589749,
+  "SSIM_RGB": 0.9364022394021352,
+  "validation_seconds": 6.2711996000007275,
+  "best_epoch": 88,
+  "checkpoint_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+  "selection_rule": "mean of per-image full MILL validation PSNR_RGB",
+  "protocol": "FP32 batch1 RGB; clamp outside forward; float predictions before PNG quantization; no resize/GT alignment/tiles/crop; SSIM win11 sigma1.5 data_range1",
+  "config_hash": "94d4b888a62d6758132f8b69d940d880479b3a6bb4a96f838b9a4ddb2710c9fd",
+  "manifest_hashes": {
+    "mill": "fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37"
+  },
+  "optimizer_updates_at_best": 13196,
+  "input_PSNR_RGB": 20.050625563754497,
+  "input_SSIM_RGB": 0.7739639494568109,
+  "illumination_MAE": 0.04591539830251819,
+  "c_hat": 0.46397837026258154,
+  "delta_psnr_vs_input": 13.116021022142991,
+  "delta_psnr_vs_input_median": 14.205934815928485,
+  "improvement_image_fraction": 0.9833333333333333,
+  "decline_image_fraction": 0.016666666666666666,
+  "cluster_bootstrap_ci95_low": 11.78427335732344,
+  "cluster_bootstrap_ci95_high": 14.357544007426903,
+  "paired_reason": "",
+  "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+  "bootstrap_clusters": 12,
+  "bootstrap_seed": 42
+}

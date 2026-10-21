@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-21T15:17:03+08:00",
+  "raw_prediction_sha256": "f1d10de3765cdb59f06ea3e215755d77fbbf7b173850a5b470d80fdcbbee9ee8",
+  "inference_repeated": false,
+  "weights_changed": false,
+  "reason": "Constant repeated-decimal targets detected by exact range; correlations are NA with reason, not NaN/roundoff artifacts.",
+  "initial_tables": "E:\\结构亮度结构解耦\\V1新版无去噪\\outputs\\A0_frozen_review_20261021_150830\\statistics_initial"
+}

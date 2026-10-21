@@ -1,0 +1,188 @@
+{
+  "interpreter": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe",
+  "full_training_started": false,
+  "full_four_dataset_test": false,
+  "protected_files": {
+    "checked": 65,
+    "changed": []
+  },
+  "historical_bounded_forward_exactly_preserved": true,
+  "source_changes": [
+    {
+      "path": "models/sddnet_v1.py",
+      "action": "modified"
+    },
+    {
+      "path": "losses/mining.py",
+      "action": "added"
+    },
+    {
+      "path": "losses/sdd_loss.py",
+      "action": "modified"
+    },
+    {
+      "path": "datasets/mill_triplet_dataset.py",
+      "action": "modified"
+    },
+    {
+      "path": "datasets/pk_dataset.py",
+      "action": "added"
+    },
+    {
+      "path": "engine/condition_diagnostics.py",
+      "action": "added"
+    },
+    {
+      "path": "engine/diagnostics.py",
+      "action": "modified"
+    },
+    {
+      "path": "engine/evaluation.py",
+      "action": "modified"
+    },
+    {
+      "path": "engine/profiling.py",
+      "action": "modified"
+    },
+    {
+      "path": "engine/reporting.py",
+      "action": "modified"
+    },
+    {
+      "path": "engine/smoke.py",
+      "action": "modified"
+    },
+    {
+      "path": "engine/training.py",
+      "action": "modified"
+    },
+    {
+      "path": "utils/ablation_metrics.py",
+      "action": "added"
+    },
+    {
+      "path": "utils/experiment.py",
+      "action": "modified"
+    },
+    {
+      "path": "utils/runtime.py",
+      "action": "modified"
+    },
+    {
+      "path": "scripts/condition_ablation.py",
+      "action": "added"
+    },
+    {
+      "path": "scripts/prepare_data.py",
+      "action": "modified"
+    },
+    {
+      "path": "scripts/run_pipeline.py",
+      "action": "modified"
+    },
+    {
+      "path": "configs/ablations/A0.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A1.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A1_init.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A1_PK_random.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A2.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A2_triplet.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A3.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A_batch16.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/A_batch18.yaml",
+      "action": "added"
+    },
+    {
+      "path": "configs/ablations/base.yaml",
+      "action": "added"
+    },
+    {
+      "path": "tests/test_condition_ablation.py",
+      "action": "added"
+    },
+    {
+      "path": "tests/test_condition_pipeline.py",
+      "action": "added"
+    },
+    {
+      "path": "tests/test_training_regressions.py",
+      "action": "modified"
+    },
+    {
+      "path": "README.md",
+      "action": "modified"
+    },
+    {
+      "path": ".gitignore",
+      "action": "added"
+    }
+  ],
+  "historical_train_log": {
+    "update_lines": 15000,
+    "epoch_complete_lines": 99,
+    "update_last_microbatch_scene_zero": 14532,
+    "last150_update_scene_zero": 148,
+    "AMP_skip_lines": 5,
+    "note": "UPDATE loss is last microbatch, not epoch mean. Epoch76 journal/CSV recovery documented in retained logs."
+  },
+  "historical_tensorboard": {
+    "scene_points": 99,
+    "zero_scene_epochs": [
+      70
+    ],
+    "first_epoch_lr": 9.99755720840767e-05,
+    "note": "Historical LR log shift was retained, not rewritten."
+  },
+  "development_data_identity": {
+    "passed": true,
+    "matching_train_validation_rows": 420,
+    "train": 300,
+    "validation": 120,
+    "raw_image_GT_hashes_and_content_level_group_ids_unchanged": true
+  },
+  "new_checkpoint_restore": {
+    "passed": true,
+    "variant": "A2",
+    "arch_revision": "v1_clean",
+    "architecture_hash": "4ddd2fe266fa53034de0ea51c552255d0c3eb3a8a3424c303c8120419d2d3e26",
+    "config_hash": "14faea312650669407d4823c1ad17a575dd8b6ea389089bb462824cf54afff70",
+    "seed": 42,
+    "completed_epoch": 0,
+    "optimizer_updates": 20,
+    "image_exposures": 320,
+    "parameter_count": 12270692,
+    "model_optimizer_scheduler_scaler_sampler_restored": true,
+    "updates_performed": 0,
+    "run_kind": "smoke"
+  },
+  "real_smoke_formal_eval_blocked": {
+    "passed": true,
+    "exit_code": 1,
+    "summary_created": false,
+    "status_unchanged": true
+  }
+}

@@ -1,0 +1,11 @@
+﻿level,count,input_PSNR_RGB,input_SSIM_RGB,input_LPIPS_Alex,output_PSNR_RGB,output_SSIM_RGB,output_LPIPS_Alex,delta_PSNR_RGB,illumination_MAE,PSNR_decline_fraction,LPIPS_reason
+1,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+2,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+3,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+4,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+5,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+6,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+7,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+8,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+9,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json
+10,0,NA,NA,NA,NA,NA,NA,NA,NA,NA,No evaluated images for this level; see evaluation_status.json

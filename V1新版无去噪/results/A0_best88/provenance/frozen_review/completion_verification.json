@@ -1,0 +1,33 @@
+{
+  "completed_at": "2026-10-21T15:20:30.0683460+08:00",
+  "formal_images": 294,
+  "datasets": [
+    {
+      "dataset": "lolv1",
+      "count": 15
+    },
+    {
+      "dataset": "lolv2_real",
+      "count": 100
+    },
+    {
+      "dataset": "lolv2_synthetic",
+      "count": 100
+    },
+    {
+      "dataset": "mill",
+      "count": 79
+    }
+  ],
+  "formal_checkpoint_hashes": [
+    "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083"
+  ],
+  "formal_oracle_rows": 0,
+  "illumination_predictions": 840,
+  "condition_rows": 216,
+  "per_level_correlations_not_NA": 0,
+  "running_training_or_review": 0,
+  "no_training_started": true,
+  "optional_gradient_check": "NA: not executed",
+  "tests": "9 PASS / 0 FAIL / 0 SKIP"
+}

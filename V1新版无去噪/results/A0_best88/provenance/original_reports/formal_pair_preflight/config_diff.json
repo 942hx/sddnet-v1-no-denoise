@@ -1,0 +1,17 @@
+[
+  {
+    "field": "variant",
+    "A0": "A0",
+    "A1": "A1"
+  },
+  {
+    "field": "run_dir",
+    "A0": "outputs/condition_ablation/A0_seed42",
+    "A1": "outputs/condition_ablation/A1_seed42"
+  },
+  {
+    "field": "model.affine_mode",
+    "A0": "bounded",
+    "A1": "standard"
+  }
+]

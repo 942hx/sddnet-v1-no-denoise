@@ -1,0 +1,2 @@
+# Preserve original scientific evidence bytes, including Windows line endings.
+results/A0_best88/** -text

@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "C:\software\anaconda3\envs\testmodel\lib\runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "C:\software\anaconda3\envs\testmodel\lib\runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "E:\结构亮度结构解耦\V1新版无去噪\scripts\run_pipeline.py", line 135, in <module>
+    main()
+  File "E:\结构亮度结构解耦\V1新版无去噪\scripts\run_pipeline.py", line 131, in main
+    execute(args)
+  File "E:\结构亮度结构解耦\V1新版无去噪\scripts\run_pipeline.py", line 38, in execute
+    validate_formal_checkpoint(state,cfg,for_resume=bool(args.resume))
+  File "E:\结构亮度结构解耦\V1新版无去噪\utils\experiment.py", line 106, in validate_formal_checkpoint
+    raise ValueError(f'This is {description} and cannot be used for {purpose}. '
+ValueError: This is a smoke checkpoint and cannot be used for formal evaluation. Use a checkpoint saved by formal training (run_kind='formal').

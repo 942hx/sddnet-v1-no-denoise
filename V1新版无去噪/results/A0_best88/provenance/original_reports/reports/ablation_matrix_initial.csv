@@ -1,0 +1,10 @@
+﻿variant,config,affine_mode,local_std,gate,sampler,miner,physical_microbatch_images,gradient_accumulation_steps,effective_images_per_full_update,same_level_negative_candidates_per_anchor,epoch_image_exposures,attempted_updates_per_epoch,exposures_at_100_epochs,attempts_at_100_epochs,equal_update_budget_5000_image_exposures,note
+A0,configs/ablations/A0.yaml,bounded,0.001,False,triplet,fixed,3,2,6,1 at triplet batch=1,900,150,90000,15000,30000,each low once as anchor; p/n may repeat
+A1,configs/ablations/A1.yaml,standard,0.001,False,triplet,fixed,3,2,6,1 at triplet batch=1,900,150,90000,15000,30000,each low once as anchor; p/n may repeat
+A1_init,configs/ablations/A1_init.yaml,standard,0.003,False,triplet,fixed,3,2,6,1 at triplet batch=1,900,150,90000,15000,30000,each low once as anchor; p/n may repeat
+A1_PK_random,configs/ablations/A1_PK_random.yaml,standard,0.001,False,pk,random,8,2,16,3,900,57,90000,5700,80000,PK repeats content/files; final tail smaller; no queue
+A2,configs/ablations/A2.yaml,standard,0.001,False,pk,semihard,8,2,16,3,900,57,90000,5700,80000,PK repeats content/files; final tail smaller; no queue
+A2_triplet,configs/ablations/A2_triplet.yaml,standard,0.001,False,triplet,semihard,3,2,6,1 at triplet batch=1,900,150,90000,15000,30000,each low once as anchor; p/n may repeat
+A3,configs/ablations/A3.yaml,standard,0.001,True,pk,semihard,8,2,16,3,900,57,90000,5700,80000,PK repeats content/files; final tail smaller; no queue
+A_batch16,configs/ablations/A_batch16.yaml,standard,0.001,False,pk,random,8,2,16,3,900,57,90000,5700,80000,PK repeats content/files; final tail smaller; no queue
+A_batch18,configs/ablations/A_batch18.yaml,standard,0.001,False,triplet,fixed,3,6,18,1 at triplet batch=1,900,50,90000,5000,90000,each low once as anchor; p/n may repeat

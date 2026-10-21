@@ -1,0 +1,19 @@
+{
+  "checkpoint": "E:\\结构亮度结构解耦\\V1新版无去噪\\outputs\\condition_ablation\\A0_seed42\\checkpoints\\best.pth",
+  "checkpoint_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+  "best_epoch": 88,
+  "run_kind": "formal",
+  "variant": "A0",
+  "config_hash": "94d4b888a62d6758132f8b69d940d880479b3a6bb4a96f838b9a4ddb2710c9fd",
+  "resolved_config_sha256": "a57df9bad83cb3a742980ecc625334b7593c2aef1e45860f5e0f772d14042f18",
+  "manifest_hashes": {
+    "mill": "fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37"
+  },
+  "complete_validation_count": 120,
+  "selection_rule": "mean of per-image full MILL validation PSNR_RGB",
+  "csv_sha256": {
+    "per_image.csv": "335ce6e6829046a374585eacab317bcc90570d14413482c4878f7108de4d82f2",
+    "per_level.csv": "d29b668a32b7f4158032657721a34e8249c0392d11e2b2b1280c5103de0cf8de",
+    "summary.csv": "2bb2651b98251a8b5a466df7e6c4f5a0bc5dbef477cebb96c8aa417256e22076"
+  }
+}

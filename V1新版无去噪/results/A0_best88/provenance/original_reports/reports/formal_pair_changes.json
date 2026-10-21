@@ -1,0 +1,92 @@
+{
+  "status": "PASS",
+  "changed": [
+    {
+      "path": "scripts/run_pipeline.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\scripts\\run_pipeline.py"
+    },
+    {
+      "path": "scripts/condition_ablation.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\scripts\\condition_ablation.py"
+    },
+    {
+      "path": "scripts/prepare_data.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\scripts\\prepare_data.py"
+    },
+    {
+      "path": "engine/training.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\engine\\training.py"
+    },
+    {
+      "path": "engine/profiling.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\engine\\profiling.py"
+    },
+    {
+      "path": "utils/ablation_metrics.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\utils\\ablation_metrics.py"
+    },
+    {
+      "path": "README.md",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\README.md"
+    },
+    {
+      "path": "tests/test_condition_pipeline.py",
+      "action": "modified",
+      "recovery": "E:\\结构亮度结构解耦\\V1新版无去噪\\reports\\formal_pair_before\\tests\\test_condition_pipeline.py"
+    },
+    {
+      "path": "engine/calibration.py",
+      "action": "added",
+      "recovery": "New file; no historical counterpart was removed."
+    },
+    {
+      "path": "scripts/formal_pair.py",
+      "action": "added",
+      "recovery": "New file; no historical counterpart was removed."
+    },
+    {
+      "path": "scripts/run_A0_A1_train_only.bat",
+      "action": "added",
+      "recovery": "New file; no historical counterpart was removed."
+    },
+    {
+      "path": "tests/test_formal_pair.py",
+      "action": "added",
+      "recovery": "New file; no historical counterpart was removed."
+    }
+  ],
+  "deleted": [],
+  "moved": [],
+  "unchanged_model_loss_configs": [
+    "models/sddnet_v1.py",
+    "losses/sdd_loss.py",
+    "configs/ablations/A0.yaml",
+    "configs/ablations/A1.yaml",
+    "configs/ablations/base.yaml"
+  ],
+  "existing_training_functions_AST_exact": true,
+  "unchanged_training_functions": [
+    "optimizer_for",
+    "accumulation_samples",
+    "concatenate_triplets",
+    "batch_metadata",
+    "window_sample_count",
+    "sampled_amp_update_state",
+    "log_gradient_samples",
+    "validate",
+    "Trainer",
+    "formal_training"
+  ],
+  "historical_protected_files_checked": 65,
+  "historical_changed": [],
+  "A2_smoke_checkpoint_unchanged": true,
+  "restoration": "Copy each modified file from its explicit recovery path. Preserve current changes separately first. No Git reset/clean.",
+  "note": "Root Git already has user folder relocation/untracked project; file diff uses the task-start small snapshot instead of treating prior relocation as this change."
+}

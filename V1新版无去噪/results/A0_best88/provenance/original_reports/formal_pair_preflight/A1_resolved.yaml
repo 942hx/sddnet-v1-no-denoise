@@ -1,0 +1,62 @@
+arch_revision: v1_clean
+run_dir: outputs/condition_ablation/A1_seed42
+seed: 42
+epochs: 100
+patch_size: 256
+triplet_batch_size: 1
+accumulation_steps: 2
+num_workers: 0
+pin_memory: true
+amp: true
+optimizer: AdamW
+learning_rate: 0.0001
+weight_decay: 0.0001
+scheduler: cosine
+min_lr: 1.0e-06
+grad_clip_norm: 1.0
+early_stopping: false
+cpu_threads: 4
+require_environment: testmodel
+device: auto
+data:
+  mill_root: data/MILLs-DSLR
+  lolv1_root: data/LOLdataset
+  lolv2_root: data/LOLv2
+  group_mapping: null
+  scope: mill_development
+loss:
+  ssim_weight: 0.2
+  scene_weight: 0.1
+  illumination_weight: 0.05
+  margin: 0.2
+  lambda_cons: 0.02
+  consistency_warmup_epochs: 5
+  mining_mode: fixed
+  record_triplet_details: true
+diagnostics:
+  patch_size: 128
+  grad_norm_every: 100
+  condition_contents: 3
+  condition_every_epoch: true
+evaluation:
+  precision: float32
+  batch_size: 1
+  save_images: true
+profile:
+  shape:
+  - 1
+  - 3
+  - 400
+  - 600
+  warmup: 20
+  iterations: 100
+  enabled: false
+ablation_version: 1
+variant: A1
+model:
+  affine_mode: standard
+  local_init_std: 0.001
+  residual_gate: false
+  g_min: 0.25
+sampling:
+  mode: triplet

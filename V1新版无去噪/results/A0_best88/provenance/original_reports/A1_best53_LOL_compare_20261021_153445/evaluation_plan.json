@@ -1,0 +1,121 @@
+{
+  "started_at": "2026-10-21T15:34:49+08:00",
+  "no_training": true,
+  "A1": {
+    "path": "E:\\结构亮度结构解耦\\V1新版无去噪\\outputs\\condition_ablation\\A1_seed42\\checkpoints\\best.pth",
+    "sha256": "98c309140d1a292e5807ff8364319d1df790601345c891395177990416e3f825",
+    "epoch": 53,
+    "best_epoch": 53,
+    "best_metric": 30.652833454756074,
+    "optimizer_updates": 7948,
+    "attempted_updates": 7950,
+    "AMP_skips": 2,
+    "image_exposures": 47700,
+    "variant": "A1",
+    "arch_revision": "v1_clean",
+    "run_kind": "formal",
+    "seed": 42,
+    "config_hash": "780a282eefd6dcec41806b7c831a3a5ba78b95f817c9fd045a78f3870724c90a",
+    "architecture_hash": "4ddd2fe266fa53034de0ea51c552255d0c3eb3a8a3424c303c8120419d2d3e26",
+    "manifest_hashes": {
+      "mill": "fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37"
+    }
+  },
+  "A0_checkpoint_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+  "A0_results": "E:\\结构亮度结构解耦\\V1新版无去噪\\outputs\\A0_frozen_review_20261021_150830\\evaluation",
+  "datasets": [
+    {
+      "dataset": "lolv1",
+      "split": "test",
+      "count": 15,
+      "raw_pair_hashes_match": true
+    },
+    {
+      "dataset": "lolv2_real",
+      "split": "test",
+      "count": 100,
+      "raw_pair_hashes_match": true
+    },
+    {
+      "dataset": "lolv2_synthetic",
+      "split": "test",
+      "count": 100,
+      "raw_pair_hashes_match": true
+    }
+  ],
+  "config": {
+    "arch_revision": "v1_clean",
+    "run_dir": "outputs/condition_ablation/A1_seed42",
+    "seed": 42,
+    "epochs": 100,
+    "patch_size": 256,
+    "triplet_batch_size": 1,
+    "accumulation_steps": 2,
+    "num_workers": 0,
+    "pin_memory": true,
+    "amp": true,
+    "optimizer": "AdamW",
+    "learning_rate": 0.0001,
+    "weight_decay": 0.0001,
+    "scheduler": "cosine",
+    "min_lr": 1e-06,
+    "grad_clip_norm": 1.0,
+    "early_stopping": false,
+    "cpu_threads": 4,
+    "require_environment": "testmodel",
+    "device": "auto",
+    "data": {
+      "mill_root": "data/MILLs-DSLR",
+      "lolv1_root": "data/LOLdataset",
+      "lolv2_root": "data/LOLv2",
+      "group_mapping": null,
+      "scope": "mill_development"
+    },
+    "loss": {
+      "ssim_weight": 0.2,
+      "scene_weight": 0.1,
+      "illumination_weight": 0.05,
+      "margin": 0.2,
+      "lambda_cons": 0.02,
+      "consistency_warmup_epochs": 5,
+      "mining_mode": "fixed",
+      "record_triplet_details": true
+    },
+    "diagnostics": {
+      "patch_size": 128,
+      "grad_norm_every": 100,
+      "condition_contents": 3,
+      "condition_every_epoch": true
+    },
+    "evaluation": {
+      "precision": "float32",
+      "batch_size": 1,
+      "save_images": true
+    },
+    "profile": {
+      "shape": [
+        1,
+        3,
+        400,
+        600
+      ],
+      "warmup": 20,
+      "iterations": 100,
+      "enabled": false
+    },
+    "ablation_version": 1,
+    "variant": "A1",
+    "model": {
+      "affine_mode": "standard",
+      "local_init_std": 0.001,
+      "residual_gate": false,
+      "g_min": 0.25
+    },
+    "sampling": {
+      "mode": "triplet"
+    }
+  },
+  "model_forward": "normal input-only c_hat; no constant/oracle condition",
+  "protocol": "Existing FP32 native RGB batch1 metrics; outer clamp; before PNG quantization; no resize/tiles/TTA/GT adjustment",
+  "selection_policy": "A0 remains the frozen main candidate; A1 tests are an explicitly requested additional comparison."
+}

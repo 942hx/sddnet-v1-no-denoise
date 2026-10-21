@@ -1,0 +1,19 @@
+{
+  "provenance": {
+    "variant": "A0",
+    "epoch": 61,
+    "optimizer_updates": 9147
+  },
+  "images": 30,
+  "rows": 330,
+  "scope": "fixed validation crop diagnostics; not formal image metrics",
+  "formula": "bounded",
+  "gate_enabled": false,
+  "restored_exactly": true,
+  "interpretations": "Output sensitivity or triplet activity alone is not success or causal disentanglement.",
+  "reconstruction_gradients": {
+    "structure_branch_grad_norm_rec_only": 0.10387399792671204,
+    "degradation_branch_grad_norm_rec_only": 0.03400639444589615,
+    "illumination_head_grad_norm_rec_only": 0.10041011869907379
+  }
+}

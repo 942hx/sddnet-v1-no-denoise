@@ -1,0 +1,754 @@
+# 正式 A0/A1 配对复核与实际结果
+
+范围：V1 增量流程修正；不改模型、loss、初始化、优化器或每轮 scheduler 数值时序。
+仅 MILL train/validation。A0→A1 串行从头100轮；不访问四个测试集、不下载 LPIPS、不做 profile。
+
+## 已实施与证据
+
+- `--train-only` 与开发 scope 的裸训练均隔离最终测试；结束后 strict 加载同run best并导出完整验证。
+- 比较按 dataset/split 分开，MILL另按level/content；bootstrap cluster包含数据集命名空间，少于两cluster时CI为NA。
+- 旧best只读诊断：`reports/best73_calibration_preformal/report.md`；源码恢复：`reports/formal_pair_before/manifest.json`。
+- 小型源码快照之外未重复导出材料；未删数据、历史权重、日志、CSV或smoke。
+
+## 测试
+
+实跑pytest：95 PASS，0 FAIL，0 SKIP。`reports\formal_pair_tests.xml`。
+
+## 实际改动与恢复
+
+删除/移动：[]/[]。原有训练函数AST完全相同=True。
+历史文件校验：65份，改变=[]；A2 smoke原checkpoint哈希未变。
+| 文件 | 操作 | 恢复位置 |
+|---|---|---|
+| scripts/run_pipeline.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\scripts\run_pipeline.py |
+| scripts/condition_ablation.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\scripts\condition_ablation.py |
+| scripts/prepare_data.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\scripts\prepare_data.py |
+| engine/training.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\engine\training.py |
+| engine/profiling.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\engine\profiling.py |
+| utils/ablation_metrics.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\utils\ablation_metrics.py |
+| README.md | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\README.md |
+| tests/test_condition_pipeline.py | modified | E:\结构亮度结构解耦\V1新版无去噪\reports\formal_pair_before\tests\test_condition_pipeline.py |
+| engine/calibration.py | added | New file; no historical counterpart was removed. |
+| scripts/formal_pair.py | added | New file; no historical counterpart was removed. |
+| scripts/run_A0_A1_train_only.bat | added | New file; no historical counterpart was removed. |
+| tests/test_formal_pair.py | added | New file; no historical counterpart was removed. |
+
+Copy each modified file from its explicit recovery path. Preserve current changes separately first. No Git reset/clean.
+模型/损失/正式配对配置未修改：models/sddnet_v1.py, losses/sdd_loss.py, configs/ablations/A0.yaml, configs/ablations/A1.yaml, configs/ablations/base.yaml。
+
+## 独立 CUDA+AMP 短测
+
+| variant | status | successful | attempts | AMP skips | exposures | peak bytes | train seconds |
+|---|---|---:|---:|---:|---:|---:|---:|
+| A0 | PASS | 20 | 21 | 1 | 126 | 1048394752 | 4.769708499999998 |
+| A1 | PASS | 20 | 21 | 1 | 126 | 953000960 | 4.727546499999999 |
+
+短测使用独立目录；不计入正式100轮，不用于resume或挑选方案。偶发AMP overflow按GradScaler跳过，未伪装成成功更新。
+
+## 旧 best73 照明诊断
+
+checkpoint epoch=73, SHA256=c2d34cb31961f86eeeef23bbc3920704a7bff4eee180c1bb2f8a3ce27da0869d；weights unchanged=True。
+| split | view | N | illumination MAE | constant MAE | c_hat mean | PSNR_RGB | SSIM_RGB |
+|---|---|---:|---:|---:|---:|---:|---:|
+| train | full | 300 | 0.07263010024209507 | 0.2777777828276157 | 0.45395243922054457 | 32.79355977387009 | 0.9342848934729894 |
+| train | center256 | 300 | 0.04407967950372646 | 0.2777777828276157 | 0.5336529884285603 | 32.23417321171757 | 0.9363883010546367 |
+| validation | full | 120 | 0.06283135736399952 | 0.2777777828276157 | 0.4388039477111306 | 32.69872242054443 | 0.9342797135313352 |
+| validation | center256 | 120 | 0.08140616814489476 | 0.2777777828276157 | 0.5259173165405324 | 28.71515726212988 | 0.9368662963310878 |
+
+全图与固定中心256为不同视野，不能混为一个指标或等同随机训练crop。校准不佳的原因仍未证明；未据此修改训练目标。
+
+## 锁定的配对配置
+
+唯一差异：variant/run_dir/affine_mode。A0 bounded；A1 standard。共有参数seed42逐值一致；A0多4个rho。
+共同：patch256，triplet1=3图，accumulation2=6图/更新，gate=false，local std=.001，固定Triplet，100轮。
+每轮300 anchor、900图像暴露、150更新尝试；AMP真实成功/跳过次数见下。逐项配置diff及代码/数据哈希见 `reports/formal_pair_preflight/`。
+
+## 正式运行的真实状态
+
+| variant | status | completed epoch | success updates | attempts | AMP skips | image exposures | best epoch | best val PSNR |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| A0 | train_only_complete | 100 | 14995 | 15000 | 5 | 90000 | 88 | 33.16664658589749 |
+| A1 | train_only_complete | 100 | 14995 | 15000 | 5 | 90000 | 53 | 30.652833454756074 |
+
+
+## 完整验证与对比
+
+A0: best epoch=88, N=120, PSNR=33.16664658589749, SSIM=0.9364022394021352, illumination MAE=0.04591539830251819；input PSNR=20.050625563754497, SSIM=0.7739639494568109；SHA=a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083。
+A1: best epoch=53, N=120, PSNR=30.652833454756074, SSIM=0.9312802081306776, illumination MAE=0.30167775195505914；input PSNR=20.050625563754497, SSIM=0.7739639494568109；SHA=98c309140d1a292e5807ff8364319d1df790601345c891395177990416e3f825。
+
+```json
+{
+  "by_dataset_split": [
+    {
+      "delta_psnr_vs_control": -2.513813131141401,
+      "delta_psnr_vs_control_median": -2.8154684502331815,
+      "improvement_image_fraction": 0.15833333333333333,
+      "decline_image_fraction": 0.8416666666666667,
+      "cluster_bootstrap_ci95_low": -3.4706776179336063,
+      "cluster_bootstrap_ci95_high": -1.4297605000883484,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "count": 120,
+      "scene_count": 12,
+      "PSNR_RGB": 30.65283345475609,
+      "SSIM_RGB": 0.9312802081306776,
+      "input_PSNR_RGB": 20.050625563754505,
+      "input_SSIM_RGB": 0.7739639494568109,
+      "illumination_MAE": 0.3016777519550588,
+      "control_PSNR_RGB": 33.166646585897496,
+      "control_SSIM_RGB": 0.9364022394021352,
+      "control_illumination_MAE": 0.0459153983025182,
+      "delta_SSIM_RGB_vs_control": -0.005122031271457672,
+      "delta_illumination_MAE_vs_control": 0.25576235365254063
+    }
+  ],
+  "mill_per_level": [
+    {
+      "delta_psnr_vs_control": -2.6473201061095235,
+      "delta_psnr_vs_control_median": -2.643826560162575,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": -3.1108451606669387,
+      "cluster_bootstrap_ci95_high": -2.197001767324068,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 1,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 24.69583145363343,
+      "SSIM_RGB": 0.7808201014995575,
+      "input_PSNR_RGB": 10.138282183953029,
+      "input_SSIM_RGB": 0.21288636202613512,
+      "illumination_MAE": 0.5078479250272115,
+      "control_PSNR_RGB": 27.34315155974296,
+      "control_SSIM_RGB": 0.7985039552052816,
+      "control_illumination_MAE": 0.0039825530936165405,
+      "delta_SSIM_RGB_vs_control": -0.01768385370572408,
+      "delta_illumination_MAE_vs_control": 0.5038653719335949
+    },
+    {
+      "delta_psnr_vs_control": -3.1470390570054203,
+      "delta_psnr_vs_control_median": -2.441729676965366,
+      "improvement_image_fraction": 0.16666666666666666,
+      "decline_image_fraction": 0.8333333333333334,
+      "cluster_bootstrap_ci95_low": -4.876626733328443,
+      "cluster_bootstrap_ci95_high": -1.62646089514735,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 2,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 27.44542571885439,
+      "SSIM_RGB": 0.8805499970912933,
+      "input_PSNR_RGB": 12.432120565997112,
+      "input_SSIM_RGB": 0.497308890024821,
+      "illumination_MAE": 0.3866337248020702,
+      "control_PSNR_RGB": 30.59246477585981,
+      "control_SSIM_RGB": 0.8911921828985214,
+      "control_illumination_MAE": 0.02244600881305005,
+      "delta_SSIM_RGB_vs_control": -0.010642185807228088,
+      "delta_illumination_MAE_vs_control": 0.3641877159890201
+    },
+    {
+      "delta_psnr_vs_control": -2.0256079391296393,
+      "delta_psnr_vs_control_median": -2.066594192623228,
+      "improvement_image_fraction": 0.25,
+      "decline_image_fraction": 0.75,
+      "cluster_bootstrap_ci95_low": -4.218370513461473,
+      "cluster_bootstrap_ci95_high": -0.06786776309504984,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 3,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 29.46369847408431,
+      "SSIM_RGB": 0.9227303564548492,
+      "input_PSNR_RGB": 14.288156486205827,
+      "input_SSIM_RGB": 0.6733945459127426,
+      "illumination_MAE": 0.26196765816873974,
+      "control_PSNR_RGB": 31.489306413213956,
+      "control_SSIM_RGB": 0.9276102085908254,
+      "control_illumination_MAE": 0.027148602323399645,
+      "delta_SSIM_RGB_vs_control": -0.004879852135976155,
+      "delta_illumination_MAE_vs_control": 0.2348190558453401
+    },
+    {
+      "delta_psnr_vs_control": -2.3300063502417965,
+      "delta_psnr_vs_control_median": -3.3423491713587623,
+      "improvement_image_fraction": 0.25,
+      "decline_image_fraction": 0.75,
+      "cluster_bootstrap_ci95_low": -4.179976311211222,
+      "cluster_bootstrap_ci95_high": -0.460325481277678,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 4,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 30.767770598505933,
+      "SSIM_RGB": 0.9431531925996145,
+      "input_PSNR_RGB": 16.051738489029898,
+      "input_SSIM_RGB": 0.7821304301420847,
+      "illumination_MAE": 0.1391080146034559,
+      "control_PSNR_RGB": 33.097776948747736,
+      "control_SSIM_RGB": 0.9467060416936874,
+      "control_illumination_MAE": 0.03372312254375881,
+      "delta_SSIM_RGB_vs_control": -0.0035528490940729776,
+      "delta_illumination_MAE_vs_control": 0.10538489205969707
+    },
+    {
+      "delta_psnr_vs_control": -2.1192762713606395,
+      "delta_psnr_vs_control_median": -2.931527165246411,
+      "improvement_image_fraction": 0.25,
+      "decline_image_fraction": 0.75,
+      "cluster_bootstrap_ci95_low": -3.7328148827602172,
+      "cluster_bootstrap_ci95_high": -0.5264278431289287,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 5,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 31.566671323573235,
+      "SSIM_RGB": 0.9531723111867905,
+      "input_PSNR_RGB": 17.911014387960726,
+      "input_SSIM_RGB": 0.8528733253479004,
+      "illumination_MAE": 0.017424363229009865,
+      "control_PSNR_RGB": 33.68594759493388,
+      "control_SSIM_RGB": 0.9560596992572149,
+      "control_illumination_MAE": 0.040386734737290264,
+      "delta_SSIM_RGB_vs_control": -0.002887388070424398,
+      "delta_illumination_MAE_vs_control": -0.0229623715082804
+    },
+    {
+      "delta_psnr_vs_control": -2.4648679460355254,
+      "delta_psnr_vs_control_median": -3.295460290092308,
+      "improvement_image_fraction": 0.16666666666666666,
+      "decline_image_fraction": 0.8333333333333334,
+      "cluster_bootstrap_ci95_low": -3.788830398209405,
+      "cluster_bootstrap_ci95_high": -1.0058105110342739,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 6,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 31.853152419354473,
+      "SSIM_RGB": 0.9590696543455124,
+      "input_PSNR_RGB": 19.911799711872064,
+      "input_SSIM_RGB": 0.8996440172195435,
+      "illumination_MAE": 0.10300229572587545,
+      "control_PSNR_RGB": 34.31802036538999,
+      "control_SSIM_RGB": 0.9619371245304743,
+      "control_illumination_MAE": 0.05168012198474673,
+      "delta_SSIM_RGB_vs_control": -0.0028674701849619546,
+      "delta_illumination_MAE_vs_control": 0.05132217374112872
+    },
+    {
+      "delta_psnr_vs_control": -2.8638328547943055,
+      "delta_psnr_vs_control_median": -3.659967341789649,
+      "improvement_image_fraction": 0.08333333333333333,
+      "decline_image_fraction": 0.9166666666666666,
+      "cluster_bootstrap_ci95_low": -3.994434317350006,
+      "cluster_bootstrap_ci95_high": -1.5664905557646571,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 7,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 31.994022324353583,
+      "SSIM_RGB": 0.9635064154863358,
+      "input_PSNR_RGB": 22.214691090083473,
+      "input_SSIM_RGB": 0.9312674204508463,
+      "illumination_MAE": 0.22262528290351224,
+      "control_PSNR_RGB": 34.85785517914789,
+      "control_SSIM_RGB": 0.9662068436543146,
+      "control_illumination_MAE": 0.05885267588827344,
+      "delta_SSIM_RGB_vs_control": -0.0027004281679789224,
+      "delta_illumination_MAE_vs_control": 0.16377260701523885
+    },
+    {
+      "delta_psnr_vs_control": -2.16505044360575,
+      "delta_psnr_vs_control_median": -2.284912322812737,
+      "improvement_image_fraction": 0.16666666666666666,
+      "decline_image_fraction": 0.8333333333333334,
+      "cluster_bootstrap_ci95_low": -3.1735883778691103,
+      "cluster_bootstrap_ci95_high": -1.1022049540001273,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 8,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 32.33964620639997,
+      "SSIM_RGB": 0.9672741939624151,
+      "input_PSNR_RGB": 25.041396889128123,
+      "input_SSIM_RGB": 0.952360267440478,
+      "illumination_MAE": 0.34160640504625106,
+      "control_PSNR_RGB": 34.504696650005705,
+      "control_SSIM_RGB": 0.9692643533150355,
+      "control_illumination_MAE": 0.058219060853675564,
+      "delta_SSIM_RGB_vs_control": -0.001990159352620443,
+      "delta_illumination_MAE_vs_control": 0.28338734419257555
+    },
+    {
+      "delta_psnr_vs_control": -1.947046495230443,
+      "delta_psnr_vs_control_median": -2.006748947286342,
+      "improvement_image_fraction": 0.16666666666666666,
+      "decline_image_fraction": 0.8333333333333334,
+      "cluster_bootstrap_ci95_low": -3.1561307515877917,
+      "cluster_bootstrap_ci95_high": -0.7671606716389204,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 9,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 33.07918356268229,
+      "SSIM_RGB": 0.9701225707928339,
+      "input_PSNR_RGB": 28.31637500778244,
+      "input_SSIM_RGB": 0.9645574043194453,
+      "illumination_MAE": 0.4591546687814925,
+      "control_PSNR_RGB": 35.026230057912734,
+      "control_SSIM_RGB": 0.9718913982311884,
+      "control_illumination_MAE": 0.06685636496102365,
+      "delta_SSIM_RGB_vs_control": -0.0017688274383544922,
+      "delta_illumination_MAE_vs_control": 0.39229830382046876
+    },
+    {
+      "delta_psnr_vs_control": -3.4280838479009668,
+      "delta_psnr_vs_control_median": -3.6684402949711323,
+      "improvement_image_fraction": 0.08333333333333333,
+      "decline_image_fraction": 0.9166666666666666,
+      "cluster_bootstrap_ci95_low": -4.416810480024116,
+      "cluster_bootstrap_ci95_high": -2.4058138591777616,
+      "paired_reason": "",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 12,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "level": 10,
+      "count": 12,
+      "scene_count": 12,
+      "PSNR_RGB": 33.32293246611928,
+      "SSIM_RGB": 0.9724032878875732,
+      "input_PSNR_RGB": 34.2006808255323,
+      "input_SSIM_RGB": 0.9732168316841125,
+      "illumination_MAE": 0.57740718126297,
+      "control_PSNR_RGB": 36.75101631402024,
+      "control_SSIM_RGB": 0.9746505866448084,
+      "control_illumination_MAE": 0.09585873782634735,
+      "delta_SSIM_RGB_vs_control": -0.002247298757235209,
+      "delta_illumination_MAE_vs_control": 0.4815484434366226
+    }
+  ],
+  "mill_per_content": [
+    {
+      "delta_psnr_vs_control": -2.3124775255123886,
+      "delta_psnr_vs_control_median": -1.8693890963512416,
+      "improvement_image_fraction": 0.2,
+      "decline_image_fraction": 0.8,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Test1",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 30.21969188037295,
+      "SSIM_RGB": 0.9293808460235595,
+      "input_PSNR_RGB": 20.966626817236033,
+      "input_SSIM_RGB": 0.7668211564421654,
+      "illumination_MAE": 0.3018035160170661,
+      "control_PSNR_RGB": 32.53216940588534,
+      "control_SSIM_RGB": 0.9352644741535187,
+      "control_illumination_MAE": 0.05887480783276259,
+      "delta_SSIM_RGB_vs_control": -0.005883628129959106,
+      "delta_illumination_MAE_vs_control": 0.24292870818430354
+    },
+    {
+      "delta_psnr_vs_control": -4.004706825374845,
+      "delta_psnr_vs_control_median": -4.670822613947621,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Test2",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 30.638446334214073,
+      "SSIM_RGB": 0.9269296884536743,
+      "input_PSNR_RGB": 20.79570150103887,
+      "input_SSIM_RGB": 0.7694662764668465,
+      "illumination_MAE": 0.30278136597739325,
+      "control_PSNR_RGB": 34.64315315958892,
+      "control_SSIM_RGB": 0.9350993037223816,
+      "control_illumination_MAE": 0.019990118453279138,
+      "delta_SSIM_RGB_vs_control": -0.008169615268707275,
+      "delta_illumination_MAE_vs_control": 0.2827912475241141
+    },
+    {
+      "delta_psnr_vs_control": -4.040665927033336,
+      "delta_psnr_vs_control_median": -4.681909364731576,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Test3",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 31.07765662028986,
+      "SSIM_RGB": 0.9317461252212524,
+      "input_PSNR_RGB": 20.36545671891127,
+      "input_SSIM_RGB": 0.7711622565984726,
+      "illumination_MAE": 0.3038546221123801,
+      "control_PSNR_RGB": 35.118322547323196,
+      "control_SSIM_RGB": 0.939601469039917,
+      "control_illumination_MAE": 0.019113872070900262,
+      "delta_SSIM_RGB_vs_control": -0.00785534381866455,
+      "delta_illumination_MAE_vs_control": 0.2847407500414799
+    },
+    {
+      "delta_psnr_vs_control": -3.689453923668082,
+      "delta_psnr_vs_control_median": -3.8193780228003185,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Test4",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 31.67347043733643,
+      "SSIM_RGB": 0.9280090034008026,
+      "input_PSNR_RGB": 20.78333153312503,
+      "input_SSIM_RGB": 0.7682425677776337,
+      "illumination_MAE": 0.3021041946278678,
+      "control_PSNR_RGB": 35.36292436100452,
+      "control_SSIM_RGB": 0.9340344309806824,
+      "control_illumination_MAE": 0.013712726424758626,
+      "delta_SSIM_RGB_vs_control": -0.00602542757987976,
+      "delta_illumination_MAE_vs_control": 0.2883914682031092
+    },
+    {
+      "delta_psnr_vs_control": -0.39143015268200154,
+      "delta_psnr_vs_control_median": -0.4707768692472154,
+      "improvement_image_fraction": 0.5,
+      "decline_image_fraction": 0.5,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val1",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 29.579071741865796,
+      "SSIM_RGB": 0.910344249010086,
+      "input_PSNR_RGB": 21.129664654614853,
+      "input_SSIM_RGB": 0.7584816724061966,
+      "illumination_MAE": 0.3017748670445548,
+      "control_PSNR_RGB": 29.970501894547787,
+      "control_SSIM_RGB": 0.9128964245319366,
+      "control_illumination_MAE": 0.09128081786911933,
+      "delta_SSIM_RGB_vs_control": -0.002552175521850586,
+      "delta_illumination_MAE_vs_control": 0.21049404917543552
+    },
+    {
+      "delta_psnr_vs_control": 2.4686052762101327,
+      "delta_psnr_vs_control_median": 2.8478716304286067,
+      "improvement_image_fraction": 0.9,
+      "decline_image_fraction": 0.1,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val2",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 32.32608816920814,
+      "SSIM_RGB": 0.9228525340557099,
+      "input_PSNR_RGB": 20.601216832641466,
+      "input_SSIM_RGB": 0.7692094698548317,
+      "illumination_MAE": 0.3028988675938712,
+      "control_PSNR_RGB": 29.857482892998014,
+      "control_SSIM_RGB": 0.9236726284027099,
+      "control_illumination_MAE": 0.0843065065331757,
+      "delta_SSIM_RGB_vs_control": -0.000820094347000122,
+      "delta_illumination_MAE_vs_control": 0.21859236106069554
+    },
+    {
+      "delta_psnr_vs_control": -3.1679344543614896,
+      "delta_psnr_vs_control_median": -3.262769305867888,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val3",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 29.914537351316277,
+      "SSIM_RGB": 0.9100707054138184,
+      "input_PSNR_RGB": 21.050467670851265,
+      "input_SSIM_RGB": 0.7551975324749947,
+      "illumination_MAE": 0.3021700190173255,
+      "control_PSNR_RGB": 33.08247180567777,
+      "control_SSIM_RGB": 0.915589839220047,
+      "control_illumination_MAE": 0.0491475332295522,
+      "delta_SSIM_RGB_vs_control": -0.0055191338062286375,
+      "delta_illumination_MAE_vs_control": 0.2530224857877733
+    },
+    {
+      "delta_psnr_vs_control": -1.3251282517593874,
+      "delta_psnr_vs_control_median": -1.1257834826123307,
+      "improvement_image_fraction": 0.1,
+      "decline_image_fraction": 0.9,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val4",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 30.88822635836807,
+      "SSIM_RGB": 0.9223415136337281,
+      "input_PSNR_RGB": 19.92106673794264,
+      "input_SSIM_RGB": 0.7728351160883904,
+      "illumination_MAE": 0.30377598272429573,
+      "control_PSNR_RGB": 32.21335461012746,
+      "control_SSIM_RGB": 0.9257614254951477,
+      "control_illumination_MAE": 0.06603222037665545,
+      "delta_SSIM_RGB_vs_control": -0.0034199118614196776,
+      "delta_illumination_MAE_vs_control": 0.2377437623476403
+    },
+    {
+      "delta_psnr_vs_control": -4.148793520383195,
+      "delta_psnr_vs_control_median": -4.147641246352636,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val5",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 29.27405675836016,
+      "SSIM_RGB": 0.9513400793075562,
+      "input_PSNR_RGB": 16.39041787207169,
+      "input_SSIM_RGB": 0.8026193261146546,
+      "illumination_MAE": 0.29707834290133583,
+      "control_PSNR_RGB": 33.422850278743354,
+      "control_SSIM_RGB": 0.9550188481807709,
+      "control_illumination_MAE": 0.0656881414935924,
+      "delta_SSIM_RGB_vs_control": -0.0036787688732147217,
+      "delta_illumination_MAE_vs_control": 0.23139020140774344
+    },
+    {
+      "delta_psnr_vs_control": -4.088224604586637,
+      "delta_psnr_vs_control_median": -3.864990199914372,
+      "improvement_image_fraction": 0.2,
+      "decline_image_fraction": 0.8,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val6",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 27.488683608192037,
+      "SSIM_RGB": 0.9502401947975159,
+      "input_PSNR_RGB": 16.890349477609647,
+      "input_SSIM_RGB": 0.8179760485887527,
+      "illumination_MAE": 0.30011174546347724,
+      "control_PSNR_RGB": 31.576908212778676,
+      "control_SSIM_RGB": 0.9557120084762574,
+      "control_illumination_MAE": 0.030880742168260956,
+      "delta_SSIM_RGB_vs_control": -0.005471813678741455,
+      "delta_illumination_MAE_vs_control": 0.26923100329521626
+    },
+    {
+      "delta_psnr_vs_control": -2.0948337873888625,
+      "delta_psnr_vs_control_median": -1.8545027888169798,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val7",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 33.07130245316789,
+      "SSIM_RGB": 0.9489107310771943,
+      "input_PSNR_RGB": 21.020132697312953,
+      "input_SSIM_RGB": 0.7722388714551925,
+      "illumination_MAE": 0.3001148329840766,
+      "control_PSNR_RGB": 35.16613624055675,
+      "control_SSIM_RGB": 0.9539245903491974,
+      "control_illumination_MAE": 0.03001535057555883,
+      "delta_SSIM_RGB_vs_control": -0.005013859272003174,
+      "delta_illumination_MAE_vs_control": 0.2700994824085178
+    },
+    {
+      "delta_psnr_vs_control": -3.370713877156721,
+      "delta_psnr_vs_control_median": -3.7303667778011107,
+      "improvement_image_fraction": 0.0,
+      "decline_image_fraction": 1.0,
+      "cluster_bootstrap_ci95_low": "NA",
+      "cluster_bootstrap_ci95_high": "NA",
+      "paired_reason": "Fewer than two independent content/group clusters; CI is NA.",
+      "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+      "bootstrap_clusters": 1,
+      "bootstrap_seed": 42,
+      "dataset": "mill",
+      "split": "validation",
+      "content_id": "Val8",
+      "count": 10,
+      "scene_count": 1,
+      "PSNR_RGB": 31.682769744381382,
+      "SSIM_RGB": 0.943196827173233,
+      "input_PSNR_RGB": 20.693074251698274,
+      "input_SSIM_RGB": 0.7633170992136001,
+      "illumination_MAE": 0.30166466699706185,
+      "control_PSNR_RGB": 35.0534836215381,
+      "control_SSIM_RGB": 0.950251430273056,
+      "control_illumination_MAE": 0.02194194260260298,
+      "delta_SSIM_RGB_vs_control": -0.007054603099822998,
+      "delta_illumination_MAE_vs_control": 0.27972272439445883
+    }
+  ],
+  "comparison": "candidate minus control; separate dataset/split summaries; no cross-dataset aggregate",
+  "missing_dataset_policy": "dataset=mill; missing split=validation (never inferred as test)",
+  "delta_psnr_vs_control": -2.513813131141401,
+  "delta_psnr_vs_control_median": -2.8154684502331815,
+  "improvement_image_fraction": 0.15833333333333333,
+  "decline_image_fraction": 0.8416666666666667,
+  "cluster_bootstrap_ci95_low": -3.4706776179336063,
+  "cluster_bootstrap_ci95_high": -1.4297605000883484,
+  "paired_reason": "",
+  "bootstrap_unit": "(dataset, split, verified group_id or full content_id)",
+  "bootstrap_clusters": 12,
+  "bootstrap_seed": 42,
+  "dataset": "mill",
+  "split": "validation",
+  "count": 120,
+  "scene_count": 12,
+  "PSNR_RGB": 30.65283345475609,
+  "SSIM_RGB": 0.9312802081306776,
+  "input_PSNR_RGB": 20.050625563754505,
+  "input_SSIM_RGB": 0.7739639494568109,
+  "illumination_MAE": 0.3016777519550588,
+  "control_PSNR_RGB": 33.166646585897496,
+  "control_SSIM_RGB": 0.9364022394021352,
+  "control_illumination_MAE": 0.0459153983025182,
+  "delta_SSIM_RGB_vs_control": -0.005122031271457672,
+  "delta_illumination_MAE_vs_control": 0.25576235365254063,
+  "candidate_csv_sha256": "c0d68122fd84d0a50bfc4b86a48ef455b7d0106a5e5d265dbf9719945892d7f8",
+  "control_csv_sha256": "335ce6e6829046a374585eacab317bcc90570d14413482c4878f7108de4d82f2"
+}
+```
+
+## 可复现命令
+
+从Anaconda Prompt：
+```bat
+conda activate testmodel
+cd /d "E:\结构亮度结构解耦\V1新版无去噪"
+python -m scripts.run_pipeline --config configs/ablations/A0.yaml --check-only
+scripts\run_A0_A1_train_only.bat
+python -m scripts.run_pipeline --config configs/ablations/A0.yaml --train-only --resume outputs/condition_ablation/A0_seed42/checkpoints/last.pth
+python -m scripts.run_pipeline --config configs/ablations/A1.yaml --train-only --resume outputs/condition_ablation/A1_seed42/checkpoints/last.pth
+python -m scripts.condition_ablation compare --candidate outputs/condition_ablation/A1_seed42/validation/best/per_image.csv --control outputs/condition_ablation/A0_seed42/validation/best/per_image.csv --output reports/A1_vs_A0_validation_formal
+python -m scripts.formal_pair report
+```
+
+串行批处理只用于两组均未有正式结果的首次启动，A0失败不会启动A1。已有运行不要重复启动；中断后用明确的同variant formal last续到100。
+后续冻结方案后才显式使用 --eval-only --checkpoint .../best.pth；本轮不执行四集测试。
+这是单seed开发验证，不是独立test或普适统计优势。依赖性诊断只表示敏感性，不是因果解耦证明。

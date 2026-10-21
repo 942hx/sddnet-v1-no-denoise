@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "device": "cuda",
+  "precision": "FP32",
+  "train_new_forwards": 600,
+  "validation_predictions_reused": 240,
+  "panel_images_per_variant": 36,
+  "ordinary_forward_verified": true,
+  "fixed_latents_and_weights_unchanged": true,
+  "optional_local_gradient_check": "NA: not executed; existing helper covers L_rec only, not weighted-illum gradient cosine. This optional expansion was omitted to keep this round limited."
+}

@@ -1,0 +1,11 @@
+{
+  "failures": {},
+  "checkpoint": "E:\\结构亮度结构解耦\\V1新版无去噪\\outputs\\condition_ablation\\A0_seed42\\checkpoints\\best.pth",
+  "checkpoint_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+  "epoch": 88,
+  "complete": true,
+  "protocol": "FP32, batch1, native RGB, no tiles/TTA/GT adjustment; arithmetic mean per image",
+  "cudnn_allow_tf32": true,
+  "matmul_allow_tf32": false,
+  "ssim": "pytorch-msssim: data_range=1, win11, sigma1.5, K=(.01,.03), nonnegative=False"
+}

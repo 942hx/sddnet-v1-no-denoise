@@ -1,0 +1,1148 @@
+--- before/scripts/run_pipeline.py
++++ after/scripts/run_pipeline.py
+@@ -1,4 +1,4 @@
+-"""Single v1_clean entry point. Use --check-only/--smoke-test for this task's acceptance boundary."""
++"""Single v1_clean entry: development training is isolated from explicit final tests."""
+ from __future__ import annotations
+ import argparse
+ import contextlib
+@@ -37,21 +37,37 @@
+         state=load_checkpoint(checkpoint_path)
+         validate_formal_checkpoint(state,cfg,for_resume=bool(args.resume))
+         del state
++    training=not (args.check_only or args.smoke_test or args.eval_only)
++    train_only=training and (getattr(args,'train_only',False) or cfg['data'].get('scope')=='mill_development')
++    # Fail before writing config/status/environment into an existing formal run.
++    if training and not args.resume and ((run_path(cfg)/'history.csv').exists() or
++                                         list((run_path(cfg)/'checkpoints').glob('*.pth'))):
++        raise RuntimeError('Run already has formal results. Preserve them and use --resume; no restart or overwrite.')
++    if train_only and args.resume:
++        state=load_checkpoint(args.resume)
++        if set(state.get('manifest_hashes',{}))!={'mill'}:
++            raise ValueError('Train-only resume requires an existing MILL development-only formal run; '
++                             'do not rewrite historical all-dataset manifests.')
++        del state
+     active=active_project_runs()
+     if active:
+         raise RuntimeError(f'Another project training/evaluation run is active. No changes or duplicate run: {active}')
+     directory=run_path(cfg)
+-    mode='check_only' if args.check_only else 'smoke' if args.smoke_test else 'evaluation' if args.eval_only else 'formal_training'
++    mode='check_only' if args.check_only else 'smoke' if args.smoke_test else 'evaluation' if args.eval_only else 'train_only' if train_only else 'formal_training'
+     with RunLock(directory,clear_stale=args.clear_stale_lock):
+         save_resolved(cfg)
+-        log_name='train.log' if mode=='formal_training' else mode+'.log'
++        log_name='train.log' if training else mode+'.log'
+         with (directory/log_name).open('a',encoding='utf-8') as log, contextlib.redirect_stdout(Tee(sys.stdout,log)), contextlib.redirect_stderr(Tee(sys.stderr,log)):
+             write_json(directory/'status.json',dict(state=mode,pid=os.getpid(),arch_revision='v1_clean'))
+             try:
+                 from scripts.check_env import check_environment
+                 from scripts.prepare_data import prepare_data
+                 check_environment(cfg)
+-                prepare_data(cfg)
++                if train_only:
++                    print('MILL development training only: final tests, LPIPS and profiling are disabled.',flush=True)
++                    prepare_data(cfg,scope='development')
++                else:
++                    prepare_data(cfg)
+                 if args.check_only:
+                     # Exclude every optimizer-update test from the no-update CLI mode.
+                     command=[sys.executable,'-m','pytest','-q','-m','not updates',
+@@ -68,18 +84,24 @@
+                     from engine.evaluation import evaluate_all
+                     from engine.profiling import profile_model
+                     evaluate_all(cfg,args.checkpoint)
+-                    profile_model(cfg,args.checkpoint,scope='formal checkpoint evaluation')
++                    if cfg.get('profile',{}).get('enabled',True):
++                        profile_model(cfg,args.checkpoint,scope='formal checkpoint evaluation')
+                 else:
+                     if args.resume:
+                         state=load_checkpoint(args.resume)
+                         validate_formal_checkpoint(state,cfg,manifest_identity(cfg),for_resume=True)
+                         del state
+                     from engine.training import formal_training
+-                    from engine.evaluation import evaluate_all
+-                    from engine.profiling import profile_model
+                     checkpoint=formal_training(cfg,args.resume)
+-                    evaluate_all(cfg,checkpoint)
+-                    profile_model(cfg,checkpoint,scope='formal validation-best checkpoint')
++                    if train_only:
++                        from engine.training import validate_best_checkpoint
++                        validate_best_checkpoint(cfg,checkpoint)
++                    else:
++                        from engine.evaluation import evaluate_all
++                        from engine.profiling import profile_model
++                        evaluate_all(cfg,checkpoint)
++                        if cfg.get('profile',{}).get('enabled',True):
++                            profile_model(cfg,checkpoint,scope='formal validation-best checkpoint')
+                 write_json(directory/'status.json',dict(state=mode+'_complete',pid=os.getpid(),arch_revision='v1_clean'))
+                 from engine.reporting import report
+                 report(cfg,stage=mode+'_complete')
+@@ -108,6 +130,7 @@
+     modes.add_argument('--check-only',action='store_true',help='No optimizer creation/update; audit and no-update pytest cases')
+     modes.add_argument('--smoke-test',action='store_true',help='Exactly 20 successful real-data optimizer updates, no formal training')
+     modes.add_argument('--eval-only',action='store_true',help='No optimizer or training; checkpoint evaluation only')
++    modes.add_argument('--train-only',action='store_true',help='Full training and validation-best export; no test/LOL/LPIPS/profile. May use --resume.')
+     parser.add_argument('--resume')
+     parser.add_argument('--checkpoint')
+     parser.add_argument('--clear-stale-lock',action='store_true')
+--- before/scripts/condition_ablation.py
++++ after/scripts/condition_ablation.py
+@@ -102,9 +102,10 @@
+     parser=argparse.ArgumentParser(description=__doc__);sub=parser.add_subparsers(dest='command',required=True)
+     m=sub.add_parser('matrix');m.add_argument('--output',default='reports/ablation_matrix.csv')
+     c=sub.add_parser('compare');c.add_argument('--candidate',required=True);c.add_argument('--control',required=True);c.add_argument('--output',required=True)
+-    for name in ('diagnose','memory-check'):
++    for name in ('diagnose','memory-check','calibration'):
+         p=sub.add_parser(name);p.add_argument('--config',required=True);p.add_argument('--output',required=True)
+         if name=='diagnose':p.add_argument('--checkpoint',required=True);p.add_argument('--allow-smoke',action='store_true')
++        if name=='calibration':p.add_argument('--checkpoint',required=True)
+     args=parser.parse_args(argv)
+     if args.command=='matrix':matrix(project_path(args.output))
+     elif args.command=='compare':
+@@ -115,7 +116,13 @@
+         rows,summary=compare_control(read_csv(project_path(args.candidate)),read_csv(project_path(args.control)))
+         summary.update(candidate_csv_sha256=file_hash(project_path(args.candidate)),control_csv_sha256=file_hash(project_path(args.control)))
+         write_csv(directory/'per_image_vs_control.csv',rows);write_json(directory/'summary_vs_control.json',summary)
++        write_csv(directory/'summary_by_dataset_split.csv',summary['by_dataset_split'])
++        write_csv(directory/'mill_per_level.csv',summary['mill_per_level'])
++        write_csv(directory/'mill_per_content.csv',summary['mill_per_content'])
+     elif args.command=='diagnose':diagnose(args)
++    elif args.command=='calibration':
++        from engine.calibration import calibration
++        calibration(args)
+     else:memory_check(args)
+ 
+ 
+--- before/scripts/prepare_data.py
++++ after/scripts/prepare_data.py
+@@ -25,7 +25,9 @@
+ def prepare_data(cfg,scope=None):
+     """Reject unknown pairs/corruption; the one official exclusion is explicit."""
+     assert_environment(cfg)
+-    development=cfg.get('data',{}).get('scope')=='mill_development' and scope!='final'
++    if scope not in (None,'development','final'):
++        raise ValueError('Unknown data audit scope.')
++    development=scope=='development' or (cfg.get('data',{}).get('scope')=='mill_development' and scope!='final')
+     destination = run_path(cfg)/'final_data' if scope=='final' else run_path(cfg)
+     metadata_dir = destination / "metadata"
+     metadata_dir.mkdir(parents=True, exist_ok=True)
+--- before/engine/training.py
++++ after/engine/training.py
+@@ -487,3 +487,74 @@
+     finally:
+         writer.close()
+     return checkpoints/'best.pth'
++
++
++def validate_best_checkpoint(cfg,checkpoint_path):
++    """Export THIS run's strict-loaded best on the complete validation manifest.
++
++    No optimizer, final-data audit, test dataset, LPIPS or profile is constructed.
++    This post-training export does not change any training/update/scheduler path.
++    """
++    from utils.experiment import file_hash,read_json
++    directory=run_path(cfg)
++    expected=(directory/'checkpoints/best.pth').resolve()
++    checkpoint_path=project_path(checkpoint_path).resolve()
++    if checkpoint_path!=expected:
++        raise ValueError('Validation-best export must load this run\'s checkpoints/best.pth.')
++    hashes=manifest_identity(cfg)
++    state=load_checkpoint(checkpoint_path)
++    validate_formal_checkpoint(state,cfg,hashes)
++    if state['completed_epoch']!=state['best_epoch']:
++        raise ValueError('best.pth does not identify its own validation-best epoch.')
++    checkpoint_hash=file_hash(checkpoint_path)
++    destination=directory/'validation/best'
++    if destination.exists() and any(destination.iterdir()):
++        provenance=read_json(destination/'provenance.json')
++        if (provenance['checkpoint_sha256']!=checkpoint_hash or provenance['manifest_hashes']!=hashes or
++            any(file_hash(destination/name)!=sha for name,sha in provenance['csv_sha256'].items())):
++            raise ValueError('Existing best validation evidence differs; preserve it and investigate.')
++        return read_json(destination/'summary.json')
++    dataset=ManifestPairedDataset(project_path(cfg['data']['mill_root']),directory/'metadata/mill.csv','validation')
++    audit=read_json(directory/'data_audit.json')
++    expected_count=audit['splits']['mill/validation']['valid_pairs']
++    if len(dataset)!=expected_count:
++        raise ValueError('Validation count differs from the complete audited split.')
++    device=choose_device(cfg['device'])
++    model=SDDNetV1(**model_options(cfg)).to(device).float().eval()
++    model.load_state_dict(state['model'],strict=True)
++    if device.type=='cuda':torch.cuda.synchronize(device)
++    started=time.perf_counter()
++    scores=validate(model,dataset,device,details=True)
++    if device.type=='cuda':torch.cuda.synchronize(device)
++    seconds=time.perf_counter()-started
++    if scores['count']!=expected_count or len(scores['per_image'])!=expected_count:
++        raise ValueError('Best validation export is incomplete.')
++    if not math.isclose(scores['PSNR_RGB'],state['best_metric'],rel_tol=0,abs_tol=1e-5):
++        raise ValueError('Recomputed full validation PSNR differs from best checkpoint selection metric.')
++    images=[dict(r,dataset='mill',split='validation',checkpoint_epoch=state['completed_epoch'],
++                 checkpoint_sha256=checkpoint_hash) for r in scores['per_image']]
++    levels=[dict(r,dataset='mill',split='validation') for r in scores['per_level']]
++    summary=dict(dataset='mill',split='validation',view='full_native_resolution',count=expected_count,
++        PSNR_RGB=scores['PSNR_RGB'],SSIM_RGB=scores['SSIM_RGB'],validation_seconds=seconds,
++        best_epoch=state['completed_epoch'],checkpoint_sha256=checkpoint_hash,
++        selection_rule='mean of per-image full MILL validation PSNR_RGB',
++        protocol='FP32 batch1 RGB; clamp outside forward; float predictions before PNG quantization; '
++                 'no resize/GT alignment/tiles/crop; SSIM win11 sigma1.5 data_range1',
++        config_hash=object_hash(training_contract(cfg)),manifest_hashes=hashes,
++        optimizer_updates_at_best=state['optimizer_updates'])
++    for key in ('input_PSNR_RGB','input_SSIM_RGB','illumination_MAE','c_hat','delta_psnr_vs_input'):
++        summary[key]=sum(r[key] for r in images)/len(images)
++    from utils.ablation_metrics import paired_summary
++    summary.update(paired_summary(images,seed=cfg['seed']))
++    write_csv(destination/'per_image.csv',images)
++    write_csv(destination/'per_level.csv',levels)
++    write_csv(destination/'summary.csv',[summary])
++    write_json(destination/'summary.json',summary)
++    write_json(destination/'provenance.json',dict(checkpoint=str(checkpoint_path),
++        checkpoint_sha256=checkpoint_hash,best_epoch=state['completed_epoch'],run_kind=state['run_kind'],
++        variant=cfg.get('variant','historical'),config_hash=summary['config_hash'],
++        resolved_config_sha256=file_hash(directory/'config_resolved.yaml'),manifest_hashes=hashes,
++        complete_validation_count=expected_count,selection_rule=summary['selection_rule'],
++        csv_sha256={name:file_hash(destination/name) for name in ('per_image.csv','per_level.csv','summary.csv')}))
++    print('BEST FULL VALIDATION '+str(summary),flush=True)
++    return summary
+--- before/engine/profiling.py
++++ after/engine/profiling.py
+@@ -16,6 +16,9 @@
+ 
+ @torch.inference_mode()
+ def profile_model(cfg, checkpoint_path=None, output_path=None, scope='architecture diagnostic'):
++    # Honour the switch even for direct callers; do not construct/load a model.
++    if not cfg.get('profile',{}).get('enabled',True):
++        return dict(status='SKIP',reason='profile.enabled=false')
+     assert_environment(cfg)
+     state = load_checkpoint(checkpoint_path) if checkpoint_path else None
+     if state:
+--- before/utils/ablation_metrics.py
++++ after/utils/ablation_metrics.py
+@@ -30,16 +30,22 @@
+             cluster_bootstrap_ci95_low='NA',cluster_bootstrap_ci95_high='NA',
+             paired_reason='Nonfinite PSNR differences (including perfect-match inf); no subset mean or fabricated CI.')
+     groups=defaultdict(list)
+-    for r,v in zip(rows,values): groups[r.get('group_id') or r.get('content_id') or r.get('scene_id') or r['filename']].append(v)
++    for r,v in zip(rows,values):
++        key=(r.get('dataset') or 'mill',r.get('split') or 'validation',
++             r.get('group_id') or r.get('content_id') or r.get('scene_id') or r['filename'])
++        groups[key].append(v)
+     clusters=list(groups.values());rng=np.random.default_rng(seed)
+     samples=[]
+-    for _ in range(repeats):
+-        sampled=[clusters[i] for i in rng.integers(0,len(clusters),size=len(clusters))]
+-        samples.append(float(np.mean([v for group in sampled for v in group])))
++    if len(clusters)>1:
++        for _ in range(repeats):
++            sampled=[clusters[i] for i in rng.integers(0,len(clusters),size=len(clusters))]
++            samples.append(float(np.mean([v for group in sampled for v in group])))
+     return dict(delta_psnr_vs_input=float(values.mean()),delta_psnr_vs_input_median=float(np.median(values)),
+         improvement_image_fraction=float(np.mean(values>0)),decline_image_fraction=float(np.mean(values<0)),
+-        cluster_bootstrap_ci95_low=float(np.quantile(samples,.025)),cluster_bootstrap_ci95_high=float(np.quantile(samples,.975)),
+-        bootstrap_unit='full content_id (verified group_id if provided)',bootstrap_clusters=len(groups),bootstrap_seed=seed)
++        cluster_bootstrap_ci95_low=float(np.quantile(samples,.025)) if samples else 'NA',
++        cluster_bootstrap_ci95_high=float(np.quantile(samples,.975)) if samples else 'NA',
++        paired_reason='' if samples else 'Fewer than two independent content/group clusters; CI is NA.',
++        bootstrap_unit='(dataset, split, verified group_id or full content_id)',bootstrap_clusters=len(groups),bootstrap_seed=seed)
+ 
+ 
+ def compare_control(candidate,control):
+@@ -48,11 +54,17 @@
+     Matched input metrics are an extra check, not a substitute for confirming the
+     same documented precision/metric/data protocol before scientific comparison.
+     """
++    def number(value):
++        try:return float(value)
++        except (ValueError,TypeError):return math.nan
++    def metric_value(row,metric):
++        if metric=='illumination_MAE':return number(row.get(metric,row.get('illumination_abs_error','NA')))
++        return number(row.get('output_'+metric,row.get(metric,'NA')))
+     def index(rows):
+         mapping={}
+         for row in rows:
+             if 'mode' in row:raise ValueError('Condition interventions are not full-image control evaluation CSVs.')
+-            key=(row.get('dataset','mill'),row.get('split','validation'),row['filename'])
++            key=(row.get('dataset') or 'mill',row.get('split') or 'validation',row['filename'])
+             if key in mapping:raise ValueError('Duplicate evaluation image key.')
+             mapping[key]=row
+         return mapping
+@@ -66,17 +78,49 @@
+                 raise ValueError('Input baseline metrics differ; check GT/data/metric protocol.')
+         source='output_PSNR_RGB' if 'output_PSNR_RGB' in row else 'PSNR_RGB'
+         ref_source='output_PSNR_RGB' if 'output_PSNR_RGB' in reference else 'PSNR_RGB'
+-        result=dict(row)
++        result=dict(row,dataset=key[0],split=key[1])
+         result.update(control_PSNR_RGB=float(reference[ref_source]),
+             delta_psnr_vs_control=float(row[source])-float(reference[ref_source]))
+         if not math.isfinite(result['delta_psnr_vs_control']):
+             result.update(delta_psnr_vs_control='NA',delta_psnr_vs_control_reason='Nonfinite/perfect-match PSNR comparison; see raw PSNR fields.')
++        for metric in ('SSIM_RGB','illumination_MAE'):
++            source=('output_'+metric) if 'output_'+metric in row else metric
++            ref_source=('output_'+metric) if 'output_'+metric in reference else metric
++            value,reference_value=metric_value(row,metric),metric_value(reference,metric)
++            result[metric]=value if math.isfinite(value) else 'NA'
++            result['control_'+metric]=reference_value if math.isfinite(reference_value) else 'NA'
++            result['delta_'+metric+'_vs_control']=(value-reference_value if math.isfinite(value) and math.isfinite(reference_value) else 'NA')
+         output.append(result)
+-    # Reuse the cluster bootstrap mathematics, with explicit output names. This
+-    # does not relabel or overwrite the original input-baseline deltas.
+-    summary=(paired_summary([dict(r,delta_psnr_vs_input=r['delta_psnr_vs_control']) for r in output])
+-             if all(isinstance(r['delta_psnr_vs_control'],(int,float)) for r in output) else
+-             dict(delta_psnr_vs_input='NA',paired_reason='Nonfinite paired differences; no subset summary.'))
+-    summary={key.replace('delta_psnr_vs_input','delta_psnr_vs_control'):value for key,value in summary.items()}
+-    summary['comparison']='candidate minus control; per-image differences, then scene-cluster summary'
++    def summarize(rows,**identity):
++        result=(paired_summary([dict(r,delta_psnr_vs_input=r['delta_psnr_vs_control']) for r in rows])
++                if rows and all(isinstance(r['delta_psnr_vs_control'],(int,float)) for r in rows) else
++                dict(delta_psnr_vs_input='NA',paired_reason='No images or nonfinite paired differences; no subset summary.',
++                     cluster_bootstrap_ci95_low='NA',cluster_bootstrap_ci95_high='NA'))
++        result={key.replace('delta_psnr_vs_input','delta_psnr_vs_control'):value for key,value in result.items()}
++        contents={r.get('content_id') or r.get('scene_id') or r['filename'] for r in rows}
++        result.update(identity,count=len(rows),scene_count=len(contents))
++        for field in ('PSNR_RGB','SSIM_RGB','input_PSNR_RGB','input_SSIM_RGB','illumination_MAE',
++                      'control_PSNR_RGB','control_SSIM_RGB','control_illumination_MAE',
++                      'delta_SSIM_RGB_vs_control','delta_illumination_MAE_vs_control'):
++            values=[number(r.get('output_'+field,r.get(field,'nan'))) for r in rows]
++            result[field]=float(np.mean(values)) if values and np.isfinite(values).all() else 'NA'
++        return result
++    grouped=defaultdict(list)
++    for row in output:grouped[(row['dataset'],row['split'])].append(row)
++    by_dataset_split=[];by_level=[];by_content=[]
++    for (dataset,split),rows in sorted(grouped.items()):
++        identity=dict(dataset=dataset,split=split)
++        by_dataset_split.append(summarize(rows,**identity))
++        if dataset.casefold()=='mill':
++            for level in range(1,11):
++                subset=[r for r in rows if float(r.get('level') or r.get('illum_level') or -1)==level]
++                by_level.append(summarize(subset,**identity,level=level))
++            for content in sorted({r.get('content_id') or r.get('scene_id') or r['filename'] for r in rows}):
++                subset=[r for r in rows if (r.get('content_id') or r.get('scene_id') or r['filename'])==content]
++                by_content.append(summarize(subset,**identity,content_id=content))
++    summary=dict(by_dataset_split=by_dataset_split,mill_per_level=by_level,mill_per_content=by_content,
++                 comparison='candidate minus control; separate dataset/split summaries; no cross-dataset aggregate',
++                 missing_dataset_policy='dataset=mill; missing split=validation (never inferred as test)')
++    # Compatible scalar fields only when they unambiguously represent ONE split.
++    if len(by_dataset_split)==1:summary.update(by_dataset_split[0])
+     return output,summary
+--- before/README.md
++++ after/README.md
+@@ -205,3 +205,47 @@
+ 正式`--eval-only`、正式resume及直接正式评测入口还要求`run_kind='formal'`。`smoke`、缺失或未知run_kind均拒绝，不按epoch编号猜测，也不自动改写标签；拦截在创建正式输出、准备数据和模型推理之前。既有本版正式checkpoint已保存formal标记，继续兼容；缺标记文件如需迁移，必须先独立核实来源并另存可审计副本，本次不提供自动绕过选项。显式标为短测的架构/profile诊断仍可读取smoke checkpoint，但不能生成正式测试summary。
+ 
+ 第二版计划另加独立去噪块进行对比实验；本分支不包含该模块，也不包含未使用的第二版占位代码。
++# A0/A1 正式配对（复核后阶段）
++
++本阶段仅串行从新初始化训练 A0、A1 各100轮，用完整 MILL validation 选 best。
++统一入口新增 `--train-only`（可与 `--resume` 同用，与三种检查/短测/评测模式互斥）。
++`data.scope=mill_development` 的裸训练也默认隔离最终测试。该模式只审计 train/validation，
++不访问 test/LOL、不创建 final_data、不加载或下载 LPIPS、不做 profile。
++训练结束会 strict 加载同一 run 的 best，导出 `validation/best/per_image.csv`、`per_level.csv`、
++`summary.json` 与含 checkpoint SHA256、best epoch、配置/数据指纹的 `provenance.json`。
++`profile.enabled=false` 对其他入口和直接 profile 调用也有效。
++
++```bat
++conda activate testmodel
++cd /d "E:\结构亮度结构解耦\V1新版无去噪"
++python -m scripts.run_pipeline --config configs/ablations/A0.yaml --check-only
++python -m scripts.run_pipeline --config configs/ablations/A0.yaml --train-only
++python -m scripts.run_pipeline --config configs/ablations/A1.yaml --train-only
++rem 中断后，只恢复同一 variant 的完整 epoch formal checkpoint：
++python -m scripts.run_pipeline --config configs/ablations/A0.yaml --train-only --resume outputs/condition_ablation/A0_seed42/checkpoints/last.pth
++```
++
++已验收的两组首次串行启动可运行 `scripts\run_A0_A1_train_only.bat`。
++它在前台运行，逐步检查退出码及真实100轮状态，A0失败不会启动A1；已有正式结果时拒绝重新开始。
++不要在已有进程运行时重复启动。两组均完成后会自动比较各自 best 的完整 validation。
++本阶段不启动 A2/A3/PK/额外batch/初始化/多seed，也不运行四集测试。
++
++A0/A1 共同：seed42、patch256、triplet1=3图、accumulation2=6图/更新、gate=false、local std=.001。
++除 variant、run_dir、FiLM公式外配置一致，共有初始化逐值一致，bounded仅多4个rho标量。
++每轮900图像暴露、150更新尝试；成功次数与AMP跳步按实际日志记录。
++照明校准差不构成修改loss的理由，本轮不改模型或损失。
++
++```bat
++rem 历史best只读诊断；输出必须是新的空目录：
++python -m scripts.condition_ablation calibration --config configs/sddnet_v1.yaml --checkpoint outputs/sddnet_v1_clean_mill_100e/checkpoints/best.pth --output reports/best73_calibration_preformal
++rem 仅在两组best完整验证导出后：
++python -m scripts.condition_ablation compare --candidate outputs/condition_ablation/A1_seed42/validation/best/per_image.csv --control outputs/condition_ablation/A0_seed42/validation/best/per_image.csv --output reports/A1_vs_A0_validation_formal
++python -m scripts.formal_pair report
++```
++
++照明诊断只读300张train和120张validation，分别计算整图、同步中心256；不更新权重、不把GT/level输入模型。
++两种视野分别报告，中心crop不等同训练随机crop。比较输出按dataset/split、MILL level/content隔离，
++少于两个独立场景时bootstrap CI为NA；不生成混合四集的单一“总体提升”。
++缺少dataset/split字段的validation CSV明确默认为mill/validation。
++本轮真实状态和结果见 `reports/formal_pair_review_and_results.md`，旧记录和smoke均保留。
++
+--- before/tests/test_condition_pipeline.py
++++ after/tests/test_condition_pipeline.py
+@@ -50,9 +50,10 @@
+                 import engine.profiling as profiling
+                 patch.setattr(run_pipeline,'active_project_runs',lambda:[])
+                 patch.setattr(env,'check_environment',lambda config:None)
+-                patch.setattr(data_entry,'prepare_data',lambda config:None)
++                patch.setattr(data_entry,'prepare_data',lambda config,**kw:None)
+                 patch.setattr(evaluation,'evaluate_all',lambda *a,**kw:None)
+                 patch.setattr(profiling,'profile_model',lambda *a,**kw:None)
++                patch.setattr(training,'validate_best_checkpoint',lambda *a,**kw:None)
+                 config_path=directory/'fixture_config.yaml'
+                 config_path.write_text(yaml.safe_dump(cfg),encoding='utf-8')
+                 run_pipeline.main(['--config',str(config_path),'--resume',str(resume)])
+--- before/engine/calibration.py
++++ after/engine/calibration.py
+@@ -0,0 +1,179 @@
++"""Read-only historical illumination calibration on audited MILL development data."""
++from collections import Counter,defaultdict
++import math
++import statistics
++import time
++import torch
++from datasets.common import mill_records,scan_mill,load_rgb,to_tensor
++from losses.ssim import ssim
++from models import SDDNetV1
++from models.sddnet_v1 import model_options
++from utils.experiment import (experiment_config,assert_environment,active_project_runs,run_path,
++    read_json,file_hash,validate_formal_checkpoint,object_hash,training_contract)
++from utils.io import write_json,write_csv,read_csv
++from utils.metrics import psnr_rgb
++from utils.runtime import project_path,choose_device,load_checkpoint
++
++
++def checked_records(cfg):
++    """Verify ONLY train/validation bytes and exact pairing against the old manifest.
++
++    The historical audit may include test/LOL; their files are never opened here.
++    Raw hashes authenticate the same pixels that the earlier full audit decoded.
++    """
++    directory=run_path(cfg);root=project_path(cfg['data']['mill_root'])
++    audit=read_json(directory/'data_audit.json')
++    metadata=directory/'metadata/mill.csv'
++    if not audit['passed'] or file_hash(metadata)!=audit['manifest_hashes']['mill']:
++        raise ValueError('Historical MILL metadata fingerprint/audit is invalid.')
++    rows={(r['split'],r['filename']):r for r in read_csv(metadata) if r['split'] in ('train','validation')}
++    if len(rows)!=sum(audit['splits']['mill/'+s]['valid_pairs'] for s in ('train','validation')):
++        raise ValueError('Duplicate/missing train/validation metadata rows.')
++    records={};hash_cache={}
++    for split in ('train','validation'):
++        parsed=scan_mill(root,split)
++        existing=mill_records(root,split,metadata)
++        actual={r.filename:(r.content_id,r.level,r.gt_path.resolve()) for r in parsed}
++        expected={r.filename:(r.content_id,r.level,r.gt_path.resolve()) for r in existing}
++        if actual!=expected:
++            raise ValueError('Actual MILL filename/level/GT pairing differs from audited metadata; stop before training.')
++        for record in existing:
++            row=rows[(split,record.filename)]
++            if row['content_id']!=record.content_id or float(row['level'])!=record.level:
++                raise ValueError('Content suffix/level is inconsistent with metadata.')
++            for path,field in ((record.input_path,'input_sha256'),(record.gt_path,'gt_sha256')):
++                if path not in hash_cache:hash_cache[path]=file_hash(path)
++                if hash_cache[path]!=row[field]:
++                    raise ValueError(f'Actual image hash differs from audited metadata: {path}')
++        records[split]=existing
++    if {r.content_id for r in records['train']} & {r.content_id for r in records['validation']}:
++        raise ValueError('Train/validation content leakage.')
++    gt_hashes={s:{rows[(s,r.filename)]['gt_sha256'] for r in records[s]} for s in records}
++    if gt_hashes['train'] & gt_hashes['validation']:
++        raise ValueError('Train/validation identical GT bytes.')
++    return records,rows,audit
++
++
++def summarize_calibration(rows,**identity):
++    """Views/splits are passed separately; std is population std (ddof=0)."""
++    result=dict(identity,count=len(rows),label_counts=dict(sorted(Counter(int(r['level']) for r in rows).items())))
++    for key in ('illumination_MAE','constant_baseline_MAE','c_hat','c_gt','PSNR_RGB','SSIM_RGB',
++                'input_PSNR_RGB','input_SSIM_RGB','delta_psnr_vs_input','delta_ssim_vs_input','raw_out_of_range'):
++        values=[r[key] for r in rows]
++        # Infinite perfect-match PSNR is retained, never turned into a fake cap.
++        result[key]=sum(values)/len(values) if values else 'NA'
++    result['c_hat_std']=statistics.pstdev(r['c_hat'] for r in rows) if rows else 'NA'
++    return result
++
++
++def calibration(args):
++    """Full and synchronous center256 inference; no optimizer or forward labels."""
++    cfg=experiment_config(args.config);assert_environment(cfg)
++    if active_project_runs():raise RuntimeError('A project run is active; calibration postponed.')
++    output=project_path(args.output)
++    if output.exists() and any(output.iterdir()):raise FileExistsError('Calibration output must be new/empty.')
++    checkpoint=project_path(args.checkpoint);before_sha=file_hash(checkpoint)
++    state=load_checkpoint(checkpoint)
++    records,metadata,audit=checked_records(cfg)
++    validate_formal_checkpoint(state,cfg,audit['manifest_hashes'])
++    baseline=statistics.median((r.level-1)/9 for r in records['train'])
++    device=choose_device(cfg['device']);torch.set_num_threads(cfg.get('cpu_threads',4))
++    model=SDDNetV1(**model_options(cfg)).to(device).float().eval()
++    model.load_state_dict(state['model'],strict=True)
++    rows=[];started=time.perf_counter()
++    with torch.inference_mode():
++        for split,samples in records.items():
++            for index,record in enumerate(samples):
++                low=to_tensor(load_rgb(record.input_path)).unsqueeze(0)
++                gt=to_tensor(load_rgb(record.gt_path)).unsqueeze(0)
++                if low.shape!=gt.shape or low.shape[-2]<256 or low.shape[-1]<256:
++                    raise ValueError(f'Full/center256 protocol cannot be applied without resize: {record.filename}')
++                if not all(torch.isfinite(v).all() and v.min()>=0 and v.max()<=1 for v in (low,gt)):
++                    raise ValueError(f'Invalid RGB range or nonfinite pixels: {record.filename}')
++                height,width=low.shape[-2:];top=(height-256)//2;left=(width-256)//2
++                source=metadata[(split,record.filename)]
++                for view in ('full','center256'):
++                    x,t=(low,gt) if view=='full' else (low[:,:,top:top+256,left:left+256],gt[:,:,top:top+256,left:left+256])
++                    x,t=x.to(device),t.to(device)
++                    result=model(x,return_latents=True)  # Only input RGB and return control.
++                    target=torch.tensor([[(record.level-1)/9]],device=device,dtype=torch.float32)
++                    if result['c_hat'].shape!=target.shape or target.shape!=(1,1):
++                        raise ValueError('Illumination labels and predictions must both be [N,1].')
++                    if not torch.isfinite(result['enhanced']).all() or not torch.isfinite(result['c_hat']).all():
++                        raise FloatingPointError(f'Nonfinite calibration output: {record.filename}/{view}')
++                    raw=result['enhanced'];enhanced=raw.clamp(0,1)
++                    predicted=result['c_hat'].item();label=target.item()
++                    psnr=psnr_rgb(enhanced,t);ssim_value=ssim(enhanced,t).item()
++                    input_psnr=psnr_rgb(x,t);input_ssim=ssim(x,t).item()
++                    row=dict(dataset='mill',split=split,view=view,filename=record.filename,
++                        content_id=record.content_id,group_id=record.group_id,level=int(record.level),
++                        c_gt=label,c_hat=predicted,illumination_MAE=abs(predicted-label),
++                        constant_prediction=baseline,constant_baseline_MAE=abs(baseline-label),
++                        input_path=str(record.input_path),gt_path=str(record.gt_path),
++                        input_sha256=source['input_sha256'],gt_sha256=source['gt_sha256'],
++                        source_shape=f'1,3,{height},{width}',view_shape=','.join(map(str,x.shape)),
++                        crop_top=0 if view=='full' else top,crop_left=0 if view=='full' else left,
++                        input_rgb_mean=x.mean().item(),gt_rgb_mean=t.mean().item(),
++                        input_max_rgb_mean=x.amax(1).mean().item(),gt_max_rgb_mean=t.amax(1).mean().item(),
++                        raw_out_of_range=((raw<0)|(raw>1)).float().mean().item(),
++                        PSNR_RGB=psnr,SSIM_RGB=ssim_value,input_PSNR_RGB=input_psnr,input_SSIM_RGB=input_ssim,
++                        delta_psnr_vs_input=psnr-input_psnr,delta_ssim_vs_input=ssim_value-input_ssim)
++                    for channel,name in enumerate(('r','g','b')):
++                        row['input_'+name+'_mean']=x[:,channel].mean().item()
++                        row['gt_'+name+'_mean']=t[:,channel].mean().item()
++                    rows.append(row)
++                    del result,raw,enhanced,x,t
++                if (index+1)%30==0:print(f'CALIBRATION {split} {index+1}/{len(samples)} full+center256',flush=True)
++    # A read-only diagnostic must leave both the file and every loaded weight exact.
++    if file_hash(checkpoint)!=before_sha or any(not torch.equal(v.cpu(),state['model'][k]) for k,v in model.state_dict().items()):
++        raise RuntimeError('Read-only calibration weight integrity check failed.')
++    per_level=[];per_content=[];summary=[]
++    for split in records:
++        for view in ('full','center256'):
++            subset=[r for r in rows if r['split']==split and r['view']==view]
++            summary.append(summarize_calibration(subset,split=split,view=view))
++            for level in range(1,11):
++                per_level.append(summarize_calibration([r for r in subset if r['level']==level],split=split,view=view,level=level))
++            for content in sorted({r['content_id'] for r in subset}):
++                per_content.append(summarize_calibration([r for r in subset if r['content_id']==content],split=split,view=view,content_id=content))
++    keyed=defaultdict(dict)
++    for row in rows:keyed[(row['split'],row['filename'])][row['view']]=row
++    views=[]
++    for (split,filename),pair in keyed.items():
++        full,crop=pair['full'],pair['center256']
++        views.append(dict(split=split,filename=filename,content_id=full['content_id'],level=full['level'],
++            full_c_hat=full['c_hat'],center256_c_hat=crop['c_hat'],
++            delta_c_hat_crop_minus_full=crop['c_hat']-full['c_hat'],abs_c_hat_view_difference=abs(crop['c_hat']-full['c_hat']),
++            full_illumination_MAE=full['illumination_MAE'],center256_illumination_MAE=crop['illumination_MAE'],
++            full_PSNR_RGB=full['PSNR_RGB'],center256_PSNR_RGB=crop['PSNR_RGB']))
++    write_csv(output/'calibration_per_image.csv',rows)
++    write_csv(output/'calibration_per_level.csv',per_level)
++    write_csv(output/'calibration_per_content.csv',per_content)
++    write_csv(output/'view_comparison.csv',views)
++    write_csv(output/'summary.csv',summary)
++    status=dict(status='PASS',read_only=True,checkpoint=str(checkpoint),checkpoint_sha256=before_sha,
++        checkpoint_epoch=state['completed_epoch'],run_kind=state['run_kind'],config_hash=object_hash(training_contract(cfg)),
++        historical_manifest_hashes=audit['manifest_hashes'],checked_image_splits=['mill/train','mill/validation'],
++        count=len(rows),unique_low_count=len(keyed),train_label_median=baseline,
++        device=str(device),precision='FP32',inference_mode=True,seconds=time.perf_counter()-started,
++        summary=summary,weights_unchanged=True,
++        protocol='Native full vs synchronized fixed center256; no resize/random augment/GT alignment; '
++                 'RGB float [0,1], labels float32 [N,1]=(level-1)/9; SSIM win11 sigma1.5 data_range1; '
++                 'outer clamp metrics before quantization; per-image PSNR arithmetic mean.')
++    write_json(output/'calibration_status.json',status)
++    lines=['# Historical best73 illumination calibration (read-only)','',
++        f'Checkpoint epoch {state["completed_epoch"]}, SHA256 `{before_sha}`. Weights unchanged.',
++        f'Actual {len(keyed)} low images, {len(rows)} full/crop forwards; train median constant={baseline}.','',
++        '| Split | View | N | Illum MAE | Constant MAE | c_hat mean | c_hat std | PSNR_RGB | SSIM_RGB |',
++        '|---|---|---:|---:|---:|---:|---:|---:|---:|']
++    for row in summary:
++        lines.append('| '+' | '.join(str(row[k]) for k in ('split','view','count','illumination_MAE','constant_baseline_MAE','c_hat','c_hat_std','PSNR_RGB','SSIM_RGB'))+' |')
++    lines+=['','GT is exactly reused across levels of the FULL suffixed content ID, never matched by sorted zip.',
++        'The full view and center256 view are different metric scopes; center256 is not the distribution of training random crops.',
++        'GT/level are used only for metric computation. No optimizer, backward, oracle condition or weight update is used.',
++        'Calibration quality alone does not prove a coding defect or identify the reason for historical test failure. Cause remains unproven.',
++        'No loss weight, gate, normalization, model or training setting is changed from these diagnostic results.',
++        'Historical test/LOL image files and prior metrics/config/status were not accessed for evaluation or overwritten.']
++    (output/'report.md').write_text('\n'.join(lines)+'\n',encoding='utf-8')
++    print('CALIBRATION COMPLETE '+str(status),flush=True)
++    return status
+--- before/scripts/formal_pair.py
++++ after/scripts/formal_pair.py
+@@ -0,0 +1,252 @@
++"""Small A0/A1 plan/status guard; all training stays in scripts.run_pipeline."""
++import argparse
++import copy
++import hashlib
++import json
++import subprocess
++import sys
++from pathlib import Path
++import torch
++from models import SDDNetV1
++from models.sddnet_v1 import model_options
++from utils.experiment import (experiment_config,assert_environment,run_path,active_project_runs,
++    manifest_identity,validate_formal_checkpoint,object_hash,training_contract,read_json,file_hash)
++from utils.runtime import PROJECT_ROOT,project_path,load_checkpoint,seed_everything
++from utils.io import write_json,read_csv
++
++PLAN='reports/formal_pair_preflight/plan.json'
++
++
++def source_hashes():
++    """Small reproducibility manifest, without datasets, weights or exported materials."""
++    files=[]
++    for folder in ('models','losses','datasets','engine','utils','scripts','tests'):
++        files.extend((PROJECT_ROOT/folder).glob('*.py'))
++    files.extend((PROJECT_ROOT/'configs').rglob('*.yaml'))
++    files.extend(PROJECT_ROOT/name for name in ('README.md','requirements.txt','requirements-lock.txt','scripts/run_A0_A1_train_only.bat'))
++    return {str(p.relative_to(PROJECT_ROOT)).replace('\\','/'):file_hash(p) for p in sorted(files) if p.is_file()}
++
++
++def pair_configs():
++    """Fail if any numerical setting beyond the single FiLM formula differs."""
++    configs=[experiment_config(f'configs/ablations/{v}.yaml') for v in ('A0','A1')]
++    stripped=[]
++    for cfg,mode in zip(configs,('bounded','standard')):
++        if (cfg['seed'],cfg['epochs'],cfg['patch_size'],cfg['triplet_batch_size'],cfg['accumulation_steps'])!=(42,100,256,1,2):
++            raise ValueError('Formal pair must use the prescribed seed/epochs/patch/triplet/accumulation.')
++        if cfg['model']!=dict(affine_mode=mode,local_init_std=.001,residual_gate=False,g_min=.25):
++            raise ValueError('Unexpected model/initialization/gate factor in formal pair.')
++        if cfg['sampling']!={'mode':'triplet'} or cfg['loss']['mining_mode']!='fixed':
++            raise ValueError('Formal pair must retain fixed triplet sampling, not PK/mining/batch ablations.')
++        item=copy.deepcopy(cfg);item.pop('variant');item.pop('run_dir');item['model'].pop('affine_mode');stripped.append(item)
++    if stripped[0]!=stripped[1]:raise ValueError('A0/A1 differ beyond variant/run_dir/affine_mode.')
++    return configs
++
++
++def plan(output):
++    """Lock the checked common initialization/config/data/code before fresh training."""
++    configs=pair_configs()
++    if active_project_runs():raise RuntimeError('A project run is active; no formal pair plan started.')
++    output=project_path(output)
++    if output.exists() and any(output.iterdir()):raise FileExistsError('Preserve existing plan; choose a new directory.')
++    hashes=[]
++    for cfg in configs:
++        assert_environment(cfg);guard_fresh(cfg,check_plan=False)
++        audit=read_json(run_path(cfg)/'data_audit.json')
++        if set(audit['splits'])!={'mill/train','mill/validation'}:
++            raise ValueError('Formal development audit must contain only MILL train/validation.')
++        if [audit['splits']['mill/'+s]['valid_pairs'] for s in ('train','validation')]!=[300,120]:
++            raise ValueError('Expected complete audited MILL train=300, validation=120.')
++        hashes.append(manifest_identity(cfg))
++    if hashes[0]!=hashes[1]:raise ValueError('A0/A1 training data manifest fingerprints differ.')
++    seed_everything(42);a=SDDNetV1(**model_options(configs[0]))
++    seed_everything(42);b=SDDNetV1(**model_options(configs[1]))
++    first,second=a.state_dict(),b.state_dict();extra=sorted(set(first)-set(second))
++    if len(extra)!=4 or any(not k.endswith('.rho') for k in extra) or set(second)-set(first):
++        raise ValueError('Unexpected state difference beyond four bounded rho scalars.')
++    digest=hashlib.sha256()
++    for key,value in second.items():
++        if not torch.equal(value,first[key]):raise ValueError(f'Common initialization mismatch: {key}')
++        digest.update(key.encode());digest.update(value.numpy().tobytes())
++    version=subprocess.run(['git','rev-parse','HEAD'],cwd=PROJECT_ROOT,capture_output=True,text=True,check=True).stdout.strip()
++    result=dict(status='PASS',configs={c['variant']:c for c in configs},
++        config_differences=[dict(field=k,A0=x,A1=y) for k,x,y in (
++            ('variant','A0','A1'),('run_dir',configs[0]['run_dir'],configs[1]['run_dir']),('model.affine_mode','bounded','standard'))],
++        manifest_hashes=hashes[0],seed=42,common_initial_parameters_exact=True,
++        common_state_sha256=digest.hexdigest(),bounded_only_parameters={k:first[k].item() for k in extra},
++        parameters={'A0':sum(p.numel() for p in a.parameters()),'A1':sum(p.numel() for p in b.parameters())},
++        git_head=version,source_sha256=source_hashes(),executable=sys.executable,torch=torch.__version__,
++        cuda=torch.version.cuda,gpu=torch.cuda.get_device_name() if torch.cuda.is_available() else 'NA',
++        per_epoch=dict(anchor_images=300,image_exposures=900,update_attempts=150),
++        per_variant=dict(epochs=100,image_exposures=90000,update_attempts=15000),
++        update_note='Successful updates and AMP skips are measured, not assumed. No early stop.',
++        training_boundary='Serial fresh A0 then A1; full MILL validation only. No final tests, LPIPS or profile.')
++    write_json(output/'plan.json',result)
++    for cfg in configs:
++        import yaml
++        (output/(cfg['variant']+'_resolved.yaml')).write_text(yaml.safe_dump(cfg,sort_keys=False),encoding='utf-8')
++    write_json(output/'config_diff.json',result['config_differences'])
++    print('FORMAL PAIR PLAN PASS '+str(output/'plan.json'),flush=True)
++    return result
++
++
++def guard_fresh(cfg,check_plan=True):
++    """Never silently restart a partially or fully trained formal run."""
++    assert_environment(cfg)
++    if active_project_runs():raise RuntimeError('Another project run is active.')
++    directory=run_path(cfg)
++    if (directory/'history.csv').exists() or list((directory/'checkpoints').glob('*.pth')):
++        raise RuntimeError(f'Existing formal results at {directory}; preserve them and use explicit same-variant --resume.')
++    if check_plan:
++        locked=read_json(project_path(PLAN))
++        if locked['status']!='PASS' or locked['configs'][cfg['variant']]!=cfg or locked['source_sha256']!=source_hashes():
++            raise ValueError('Formal pair code/config differs from the checked plan; review and create a new plan before training.')
++        if manifest_identity(cfg)!=locked['manifest_hashes']:raise ValueError('Data differs from formal pair plan.')
++        calibration=read_json(PROJECT_ROOT/'reports/best73_calibration_preformal/calibration_status.json')
++        if calibration['status']!='PASS' or not calibration['weights_unchanged']:raise ValueError('Calibration integrity not accepted.')
++        import xml.etree.ElementTree as ET
++        root=ET.parse(PROJECT_ROOT/'reports/formal_pair_tests.xml').getroot()
++        if any(True for _ in root.iter('failure')) or any(True for _ in root.iter('error')):
++            raise ValueError('Regression tests failed; formal training blocked.')
++        for variant in ('A0','A1'):
++            smoke=read_json(PROJECT_ROOT/f'outputs/formal_pair_smoke/{variant}/smoke/smoke_results.json')
++            if smoke['status']!='PASS' or smoke['optimizer_updates']!=20 or not smoke['amp']:
++                raise ValueError('Independent CUDA+AMP entry smoke not accepted.')
++    print(f'FRESH GUARD PASS {cfg["variant"]}',flush=True)
++
++
++def verify(cfg):
++    """Serial launcher may advance only after full formal completion + best export."""
++    directory=run_path(cfg);hashes=manifest_identity(cfg)
++    if read_json(directory/'status.json')['state']!='train_only_complete':
++        raise RuntimeError('Train-only status is not complete; do not start the next run.')
++    last=load_checkpoint(directory/'checkpoints/last.pth')
++    validate_formal_checkpoint(last,cfg,hashes,for_resume=True)
++    if (last['completed_epoch'],last['attempted_updates'],last['image_exposures'])!=(100,15000,90000):
++        raise ValueError('Formal epoch/update-attempt/image-exposure budgets are incomplete.')
++    if last['optimizer_updates']+last['overflows']!=last['attempted_updates']:
++        raise ValueError('Optimizer/AMP counters disagree.')
++    best=load_checkpoint(directory/'checkpoints/best.pth')
++    validate_formal_checkpoint(best,cfg,hashes)
++    model=SDDNetV1(**model_options(cfg));model.load_state_dict(best['model'],strict=True)
++    provenance=read_json(directory/'validation/best/provenance.json')
++    if (best['completed_epoch']!=last['best_epoch'] or provenance['best_epoch']!=best['completed_epoch'] or
++        provenance['checkpoint_sha256']!=file_hash(directory/'checkpoints/best.pth') or
++        provenance['manifest_hashes']!=hashes or provenance['complete_validation_count']!=120):
++        raise ValueError('Best validation export provenance/count mismatch.')
++    if any(file_hash(directory/'validation/best'/name)!=sha for name,sha in provenance['csv_sha256'].items()):
++        raise ValueError('Best validation export CSV changed.')
++    history=read_csv(directory/'history.csv')
++    if [int(r['completed_epoch']) for r in history]!=list(range(1,101)):
++        raise ValueError('Formal history must contain all 100 complete epochs.')
++    if (directory/'final_data').exists() or (directory/'metrics/summary.csv').exists():
++        raise ValueError('Unexpected final test output in development pair run.')
++    print(f'VERIFIED {cfg["variant"]}: epoch100; best{best["completed_epoch"]}; updates{last["optimizer_updates"]}; AMP skips{last["overflows"]}',flush=True)
++
++
++def report():
++    """Refresh truthful progress/results, including pending variants without invented scores."""
++    lines=['# 正式 A0/A1 配对复核与实际结果','',
++        '范围：V1 增量流程修正；不改模型、loss、初始化、优化器或每轮 scheduler 数值时序。',
++        '仅 MILL train/validation。A0→A1 串行从头100轮；不访问四个测试集、不下载 LPIPS、不做 profile。','',
++        '## 已实施与证据','',
++        '- `--train-only` 与开发 scope 的裸训练均隔离最终测试；结束后 strict 加载同run best并导出完整验证。',
++        '- 比较按 dataset/split 分开，MILL另按level/content；bootstrap cluster包含数据集命名空间，少于两cluster时CI为NA。',
++        '- 旧best只读诊断：`reports/best73_calibration_preformal/report.md`；源码恢复：`reports/formal_pair_before/manifest.json`。',
++        '- 小型源码快照之外未重复导出材料；未删数据、历史权重、日志、CSV或smoke。','',
++        '## 测试','']
++    import xml.etree.ElementTree as ET
++    test_path=PROJECT_ROOT/'reports/formal_pair_tests.xml'
++    if test_path.exists():
++        cases=list(ET.parse(test_path).getroot().iter('testcase'))
++        failed=sum(c.find('failure') is not None or c.find('error') is not None for c in cases)
++        skipped=sum(c.find('skipped') is not None for c in cases)
++        lines.append(f'实跑pytest：{len(cases)-failed-skipped} PASS，{failed} FAIL，{skipped} SKIP。`{test_path.relative_to(PROJECT_ROOT)}`。')
++    else:lines.append('NA：尚无本轮测试证据。')
++    changes=PROJECT_ROOT/'reports/formal_pair_changes.json'
++    if changes.exists():
++        audit=read_json(changes)
++        lines+=['','## 实际改动与恢复','',
++            f'删除/移动：{audit["deleted"]}/{audit["moved"]}。原有训练函数AST完全相同={audit["existing_training_functions_AST_exact"]}。',
++            f'历史文件校验：{audit["historical_protected_files_checked"]}份，改变={audit["historical_changed"]}；A2 smoke原checkpoint哈希未变。',
++            '| 文件 | 操作 | 恢复位置 |','|---|---|---|']
++        lines += [f'| {r["path"]} | {r["action"]} | {r["recovery"]} |' for r in audit['changed']]
++        lines += ['',audit['restoration'],'模型/损失/正式配对配置未修改：'+', '.join(audit['unchanged_model_loss_configs'])+'。']
++    lines+=['','## 独立 CUDA+AMP 短测','',
++        '| variant | status | successful | attempts | AMP skips | exposures | peak bytes | train seconds |',
++        '|---|---|---:|---:|---:|---:|---:|---:|']
++    for variant in ('A0','A1'):
++        path=PROJECT_ROOT/f'outputs/formal_pair_smoke/{variant}/smoke/smoke_results.json'
++        if path.exists():
++            row=read_json(path)
++            lines.append('| '+' | '.join(map(str,[variant]+[row[k] for k in ('status','optimizer_updates','attempted_updates','AMP_overflows','image_exposures','peak_train_allocated_bytes','training_seconds')]))+' |')
++        else:lines.append(f'| {variant} | NA：未执行 | NA | NA | NA | NA | NA | NA |')
++    lines+=['','短测使用独立目录；不计入正式100轮，不用于resume或挑选方案。偶发AMP overflow按GradScaler跳过，未伪装成成功更新。']
++    cal=PROJECT_ROOT/'reports/best73_calibration_preformal/calibration_status.json'
++    if cal.exists():
++        status=read_json(cal)
++        lines+=['','## 旧 best73 照明诊断','',f'checkpoint epoch={status["checkpoint_epoch"]}, SHA256={status["checkpoint_sha256"]}；weights unchanged={status["weights_unchanged"]}。',
++                '| split | view | N | illumination MAE | constant MAE | c_hat mean | PSNR_RGB | SSIM_RGB |',
++                '|---|---|---:|---:|---:|---:|---:|---:|']
++        for row in status['summary']:
++            lines.append('| '+' | '.join(str(row[k]) for k in ('split','view','count','illumination_MAE','constant_baseline_MAE','c_hat','PSNR_RGB','SSIM_RGB'))+' |')
++        lines+=['','全图与固定中心256为不同视野，不能混为一个指标或等同随机训练crop。校准不佳的原因仍未证明；未据此修改训练目标。']
++    lines+=['','## 锁定的配对配置','',
++        '唯一差异：variant/run_dir/affine_mode。A0 bounded；A1 standard。共有参数seed42逐值一致；A0多4个rho。',
++        '共同：patch256，triplet1=3图，accumulation2=6图/更新，gate=false，local std=.001，固定Triplet，100轮。',
++        '每轮300 anchor、900图像暴露、150更新尝试；AMP真实成功/跳过次数见下。逐项配置diff及代码/数据哈希见 `reports/formal_pair_preflight/`。','',
++        '## 正式运行的真实状态','',
++        '| variant | status | completed epoch | success updates | attempts | AMP skips | image exposures | best epoch | best val PSNR |',
++        '|---|---|---:|---:|---:|---:|---:|---:|---:|']
++    lock_lines=[]
++    for cfg in pair_configs():
++        directory=run_path(cfg);history=read_csv(directory/'history.csv')
++        status=read_json(directory/'status.json') if (directory/'status.json').exists() else {'state':'not_started'}
++        # Read scalar progress from atomically journaled history; no competing GPU work.
++        row=history[-1] if history else {}
++        best=max(history,key=lambda r:float(r['val_PSNR_RGB'])) if history else {}
++        fields=[cfg['variant'],status['state'],row.get('completed_epoch',0),row.get('optimizer_updates',0),
++            row.get('attempted_updates',0),row.get('AMP_overflows',0),row.get('image_exposures',0),best.get('completed_epoch','NA'),best.get('val_PSNR_RGB','NA')]
++        lines.append('| '+' | '.join(map(str,fields))+' |')
++        if (directory/'run.lock').exists():
++            lock=read_json(directory/'run.lock');lock_lines.append(f'{cfg["variant"]} 当前锁 PID={lock["pid"]}，启动Unix时间={lock["started_unix"]}，日志 `{cfg["run_dir"]}/train.log`。')
++    lines+=['',*lock_lines,'','## 完整验证与对比','']
++    complete=True
++    for variant in ('A0','A1'):
++        directory=PROJECT_ROOT/f'outputs/condition_ablation/{variant}_seed42'
++        path=directory/'validation/best/summary.json'
++        if not path.exists():complete=False;lines.append(f'{variant} 最终best完整验证：NA（尚未完成或导出）。');continue
++        data=read_json(path)
++        lines.append(f'{variant}: best epoch={data["best_epoch"]}, N={data["count"]}, PSNR={data["PSNR_RGB"]}, SSIM={data["SSIM_RGB"]}, illumination MAE={data["illumination_MAE"]}；input PSNR={data["input_PSNR_RGB"]}, SSIM={data["input_SSIM_RGB"]}；SHA={data["checkpoint_sha256"]}。')
++    comparison=PROJECT_ROOT/'reports/A1_vs_A0_validation_formal/summary_vs_control.json'
++    if complete and comparison.exists():lines+=['','```json',json.dumps(read_json(comparison),ensure_ascii=False,indent=2),'```']
++    else:lines+=['','A1-vs-A0正式完整验证对比：NA，等待两组100轮及各自best导出后生成；不把smoke或中间轮当最终结果。']
++    lines+=['','## 可复现命令','', '从Anaconda Prompt：','```bat','conda activate testmodel',f'cd /d "{PROJECT_ROOT}"',
++        'python -m scripts.run_pipeline --config configs/ablations/A0.yaml --check-only',
++        'scripts\\run_A0_A1_train_only.bat',
++        'python -m scripts.run_pipeline --config configs/ablations/A0.yaml --train-only --resume outputs/condition_ablation/A0_seed42/checkpoints/last.pth',
++        'python -m scripts.run_pipeline --config configs/ablations/A1.yaml --train-only --resume outputs/condition_ablation/A1_seed42/checkpoints/last.pth',
++        'python -m scripts.condition_ablation compare --candidate outputs/condition_ablation/A1_seed42/validation/best/per_image.csv --control outputs/condition_ablation/A0_seed42/validation/best/per_image.csv --output reports/A1_vs_A0_validation_formal',
++        'python -m scripts.formal_pair report','```','',
++        '串行批处理只用于两组均未有正式结果的首次启动，A0失败不会启动A1。已有运行不要重复启动；中断后用明确的同variant formal last续到100。',
++        '后续冻结方案后才显式使用 --eval-only --checkpoint .../best.pth；本轮不执行四集测试。',
++        '这是单seed开发验证，不是独立test或普适统计优势。依赖性诊断只表示敏感性，不是因果解耦证明。']
++    output=PROJECT_ROOT/'reports/formal_pair_review_and_results.md'
++    output.write_text('\n'.join(lines)+'\n',encoding='utf-8')
++    print(f'REPORT {output}',flush=True)
++
++
++def main(argv=None):
++    parser=argparse.ArgumentParser(description=__doc__);sub=parser.add_subparsers(dest='command',required=True)
++    p=sub.add_parser('plan');p.add_argument('--output',default='reports/formal_pair_preflight')
++    for name in ('guard','verify'):
++        p=sub.add_parser(name);p.add_argument('--config',required=True)
++    sub.add_parser('report')
++    args=parser.parse_args(argv)
++    if args.command=='plan':plan(args.output)
++    elif args.command=='guard':guard_fresh(experiment_config(args.config))
++    elif args.command=='verify':verify(experiment_config(args.config))
++    else:report()
++
++
++if __name__=='__main__':main()
+--- before/scripts/run_A0_A1_train_only.bat
++++ after/scripts/run_A0_A1_train_only.bat
+@@ -0,0 +1,24 @@
++@echo off
++rem Foreground serial launcher. Run from an activated testmodel Anaconda Prompt.
++rem SDDNET_PYTHON optionally selects an already verified testmodel interpreter.
++setlocal
++cd /d "%~dp0.."
++if not defined SDDNET_PYTHON set "SDDNET_PYTHON=python"
++"%SDDNET_PYTHON%" -m scripts.formal_pair guard --config configs/ablations/A0.yaml
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.formal_pair guard --config configs/ablations/A1.yaml
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.run_pipeline --config configs/ablations/A0.yaml --train-only
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.formal_pair verify --config configs/ablations/A0.yaml
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.formal_pair report
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.run_pipeline --config configs/ablations/A1.yaml --train-only
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.formal_pair verify --config configs/ablations/A1.yaml
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.condition_ablation compare --candidate outputs/condition_ablation/A1_seed42/validation/best/per_image.csv --control outputs/condition_ablation/A0_seed42/validation/best/per_image.csv --output reports/A1_vs_A0_validation_formal
++if errorlevel 1 exit /b 1
++"%SDDNET_PYTHON%" -m scripts.formal_pair report
++exit /b %errorlevel%
+--- before/tests/test_formal_pair.py
++++ after/tests/test_formal_pair.py
+@@ -0,0 +1,292 @@
++"""Formal-pair workflow regressions. Temporary fixtures are not scientific results."""
++import copy
++import json
++from types import SimpleNamespace
++from unittest.mock import Mock
++import numpy as np
++from PIL import Image
++import pytest
++import torch
++import yaml
++from models import SDDNetV1
++from models.sddnet_v1 import model_options
++from scripts import run_pipeline,prepare_data as data_entry,check_env
++from engine import training,evaluation,profiling,reporting
++from utils import metrics
++from utils.ablation_metrics import compare_control,paired_summary
++from utils.experiment import (experiment_config,training_contract,object_hash,architecture_hash,
++                              manifest_identity,save_resolved,read_json,file_hash)
++from utils.runtime import save_checkpoint,load_checkpoint
++from utils.io import read_csv,write_json
++from .test_condition_ablation import mill_root
++
++
++def formal_state(cfg,weights,hashes,epoch=73,metric=10.):
++    return dict(arch_revision='v1_clean',run_kind='formal',contract=training_contract(cfg),
++        model=weights,manifest_hashes=hashes,variant=cfg['variant'],architecture_hash=architecture_hash(cfg),
++        config_hash=object_hash(training_contract(cfg)),completed_epoch=epoch,best_epoch=epoch,
++        best_metric=metric,optimizer_updates=epoch*150,sampler=dict(size=300,position=300))
++
++
++@pytest.mark.parametrize('explicit',[True,False])
++def test_train_only_cli_never_reads_final_data_or_lpips(monkeypatch,mill_root,tmp_path,explicit):
++    cfg=experiment_config('configs/ablations/A0.yaml')
++    cfg.update(run_dir=str(tmp_path/'run'),device='cpu',amp=False)
++    cfg['data'].update(mill_root=str(mill_root),lolv1_root='missing_lol1',lolv2_root='missing_lol2')
++    config=tmp_path/'config.yaml';config.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    forbidden=Mock(side_effect=AssertionError('Train-only entered test/LOL/LPIPS/profile'))
++    monkeypatch.setattr(evaluation,'evaluate_all',forbidden)
++    monkeypatch.setattr(metrics,'load_lpips',forbidden)
++    monkeypatch.setattr(profiling,'profile_model',forbidden)
++    monkeypatch.setattr(check_env,'check_environment',lambda cfg:None)
++    monkeypatch.setattr(reporting,'report',lambda *a,**kw:None)
++    monkeypatch.setattr(run_pipeline,'active_project_runs',lambda:[])
++    real_audit=data_entry.prepare_data
++    def audit(cfg,scope=None):
++        assert scope=='development'
++        return real_audit(cfg,scope)
++    monkeypatch.setattr(data_entry,'prepare_data',audit)
++    observed=[]
++    def train(cfg,resume):
++        observed.append(('train',resume))
++        return str(tmp_path/'run/checkpoints/best.pth')
++    def best(cfg,checkpoint):
++        observed.append(('best',checkpoint))
++        assert set(manifest_identity(cfg))=={'mill'}
++    monkeypatch.setattr(training,'formal_training',train)
++    monkeypatch.setattr(training,'validate_best_checkpoint',best)
++    run_pipeline.main(['--config',str(config)]+(['--train-only'] if explicit else []))
++    forbidden.assert_not_called()
++    assert [r[0] for r in observed]==['train','best']
++    assert read_json(tmp_path/'run/status.json')['state']=='train_only_complete'
++    assert not (tmp_path/'run/final_data').exists() and not (mill_root/'test').exists()
++    assert not (tmp_path/'run/metrics/summary.csv').exists()
++
++
++def test_train_only_resume_cli_and_conflicting_flags(monkeypatch,mill_root,tmp_path):
++    cfg=experiment_config('configs/ablations/A1.yaml')
++    cfg.update(run_dir=str(tmp_path/'run'),device='cpu',amp=False)
++    cfg['data']['mill_root']=str(mill_root)
++    audit=data_entry.prepare_data(cfg)
++    path=tmp_path/'formal.pth';save_checkpoint(path,formal_state(cfg,{},audit['manifest_hashes']))
++    config=tmp_path/'cfg.yaml';config.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    monkeypatch.setattr(run_pipeline,'active_project_runs',lambda:[])
++    monkeypatch.setattr(check_env,'check_environment',lambda cfg:None)
++    monkeypatch.setattr(reporting,'report',lambda *a,**kw:None)
++    train=Mock(return_value=tmp_path/'run/checkpoints/best.pth');best=Mock()
++    monkeypatch.setattr(training,'formal_training',train)
++    monkeypatch.setattr(training,'validate_best_checkpoint',best)
++    monkeypatch.setattr(evaluation,'evaluate_all',Mock(side_effect=AssertionError('Final tests forbidden')))
++    run_pipeline.main(['--config',str(config),'--train-only','--resume',str(path)])
++    assert train.call_args.args[1]==str(path) and best.call_count==1
++    for flag in ('--check-only','--eval-only','--smoke-test'):
++        with pytest.raises(SystemExit):run_pipeline.build_parser().parse_args(['--train-only',flag])
++
++
++@pytest.mark.updates
++def test_actual_train_only_cpu_fixture_completes_epoch_and_strict_best_export(monkeypatch,mill_root,tmp_path):
++    """Real model/all losses/AdamW CPU steps, one shortened driver epoch, no test dirs."""
++    cfg=experiment_config('configs/ablations/A0.yaml')
++    cfg.update(run_dir=str(tmp_path/'run'),device='cpu',amp=False,patch_size=16,cpu_threads=2)
++    cfg['diagnostics']['condition_every_epoch']=False
++    cfg['data'].update(mill_root=str(mill_root),lolv1_root='missing_lol',lolv2_root='missing_lol2')
++    data_entry.prepare_data(cfg)
++    trainer=training.Trainer(cfg)
++    config=tmp_path/'fixture.yaml';config.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    monkeypatch.setattr(run_pipeline,'active_project_runs',lambda:[])
++    monkeypatch.setattr(check_env,'check_environment',lambda cfg:None)
++    monkeypatch.setattr(reporting,'report',lambda *a,**kw:None)
++    forbidden=Mock(side_effect=AssertionError('CPU fixture accessed final tests/LPIPS/profile'))
++    monkeypatch.setattr(evaluation,'evaluate_all',forbidden)
++    monkeypatch.setattr(metrics,'load_lpips',forbidden)
++    monkeypatch.setattr(profiling,'profile_model',forbidden)
++    monkeypatch.setattr(training,'Trainer',lambda *a:trainer)
++    monkeypatch.setattr(trainer,'diagnose',lambda:{'scope':'CPU fixture'})
++    monkeypatch.setattr(training,'range',lambda *args:range(args[0],2)
++        if len(args)==2 and args[1]==101 else range(*args),raising=False)
++    class TorchProxy:
++        cuda=SimpleNamespace(is_available=lambda:True)
++        def __getattr__(self,name):return getattr(torch,name)
++    monkeypatch.setattr(training,'torch',TorchProxy())
++    monkeypatch.setattr(training,'choose_device',lambda value:torch.device('cuda'))
++    real_training=training.formal_training
++    def fixture_driver(cfg,resume):
++        result=real_training(cfg,resume)
++        monkeypatch.setattr(training,'choose_device',lambda value:torch.device('cpu'))
++        return result
++    monkeypatch.setattr(training,'formal_training',fixture_driver)
++    run_pipeline.main(['--config',str(config),'--train-only'])
++    state=load_checkpoint(tmp_path/'run/checkpoints/last.pth')
++    assert state['completed_epoch']==1 and state['optimizer_updates']==6
++    assert state['attempted_updates']==6 and state['image_exposures']==36
++    assert state['scheduler']['last_epoch']==1
++    assert read_json(tmp_path/'run/status.json')['state']=='train_only_complete'
++    assert len(read_csv(tmp_path/'run/validation/best/per_image.csv'))==12
++    assert read_json(tmp_path/'run/validation/best/provenance.json')['best_epoch']==1
++    forbidden.assert_not_called()
++
++
++def test_existing_formal_results_rejected_before_writes(tmp_path,monkeypatch):
++    cfg=experiment_config('configs/ablations/A0.yaml');cfg['run_dir']=str(tmp_path/'run')
++    directory=tmp_path/'run';directory.mkdir();(directory/'history.csv').write_text('original',encoding='utf-8')
++    config=tmp_path/'cfg.yaml';config.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    monkeypatch.setattr(run_pipeline,'save_resolved',Mock(side_effect=AssertionError('Existing config overwritten')))
++    with pytest.raises(RuntimeError,match='formal results'):
++        run_pipeline.main(['--config',str(config),'--train-only'])
++    assert (directory/'history.csv').read_text()=='original' and not (directory/'status.json').exists()
++
++
++def test_profile_disabled_does_not_load_or_construct(monkeypatch):
++    forbidden=Mock(side_effect=AssertionError('Disabled profile performed work'))
++    monkeypatch.setattr(profiling,'load_checkpoint',forbidden)
++    monkeypatch.setattr(profiling,'SDDNetV1',forbidden)
++    assert profiling.profile_model({'profile':{'enabled':False}},'missing.pth')['status']=='SKIP'
++    forbidden.assert_not_called()
++
++
++def test_eval_only_profile_disabled_at_entry(monkeypatch,tmp_path):
++    from .test_training_regressions import checkpoint,config
++    cfg=config(tmp_path/'run');cfg['profile']['enabled']=False
++    path=tmp_path/'formal.pth';save_checkpoint(path,checkpoint(cfg))
++    config_file=tmp_path/'cfg.yaml';config_file.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    monkeypatch.setattr(run_pipeline,'active_project_runs',lambda:[])
++    monkeypatch.setattr(check_env,'check_environment',lambda cfg:None)
++    monkeypatch.setattr(data_entry,'prepare_data',lambda cfg:None)
++    monkeypatch.setattr(reporting,'report',lambda *a,**kw:None)
++    evaluate=Mock();forbidden=Mock(side_effect=AssertionError('Disabled profile called by CLI'))
++    monkeypatch.setattr(evaluation,'evaluate_all',evaluate);monkeypatch.setattr(profiling,'profile_model',forbidden)
++    run_pipeline.main(['--config',str(config_file),'--eval-only','--checkpoint',str(path)])
++    assert evaluate.call_count==1;forbidden.assert_not_called()
++
++
++def test_compare_mixed_datasets_splits_and_same_names_are_separate():
++    control=[];candidate=[]
++    for dataset,split,count,delta in [('a','test',1,10),('b','test',3,-1),('a','validation',1,2)]:
++        for i in range(count):
++            row=dict(dataset=dataset,split=split,filename=f'{i}.png',content_id='same',
++                input_PSNR_RGB=8.,input_SSIM_RGB=.3,PSNR_RGB=10.,SSIM_RGB=.5)
++            control.append(row);candidate.append(dict(row,PSNR_RGB=10+delta))
++    rows,summary=compare_control(candidate,control)
++    assert 'delta_psnr_vs_control' not in summary  # No +1.75 dB mixed result.
++    values={(r['dataset'],r['split']):r for r in summary['by_dataset_split']}
++    assert values['a','test']['delta_psnr_vs_control']==10
++    assert values['b','test']['delta_psnr_vs_control']==-1
++    assert values['a','validation']['delta_psnr_vs_control']==2
++    assert all(r['scene_count']==1 and r['cluster_bootstrap_ci95_low']=='NA' for r in values.values())
++    result=paired_summary([dict(r,delta_psnr_vs_input=1) for r in control],repeats=20)
++    assert result['bootstrap_clusters']==3  # Same content name, three independent namespaces.
++
++
++def test_compare_validation_defaults_levels_content_and_nonfinite():
++    control=[dict(filename=f'{i}.png',content_id=c,level=level,input_PSNR_RGB=10.,input_SSIM_RGB=.3,
++                  PSNR_RGB=12.,SSIM_RGB=.5) for i,(c,level) in enumerate([('s_a',1),('s_a',10),('s_b',1)])]
++    candidate=[dict(r,PSNR_RGB=13.,SSIM_RGB=.6) for r in control]
++    rows,summary=compare_control(candidate,control)
++    assert summary['dataset']=='mill' and summary['split']=='validation'
++    assert summary['count']==3 and summary['scene_count']==2
++    assert len(summary['mill_per_level'])==10 and len(summary['mill_per_content'])==2
++    assert summary['delta_SSIM_RGB_vs_control']==pytest.approx(.1)
++    assert summary['mill_per_level'][9]['cluster_bootstrap_ci95_low']=='NA'
++    assert summary['mill_per_level'][1]['count']==0
++    candidate[0]['PSNR_RGB']=float('inf')
++    rows,summary=compare_control(candidate,control)
++    assert rows[0]['delta_psnr_vs_control']=='NA' and summary['delta_psnr_vs_control']=='NA'
++
++
++def test_compare_legacy_lol_na_labels_are_not_fabricated():
++    row=dict(dataset='lolv1',split='test',filename='1.png',scene_id='1',illum_level='NA',
++             input_PSNR_RGB='10',input_SSIM_RGB='.4',output_PSNR_RGB='12',output_SSIM_RGB='.6',
++             illumination_abs_error='NA')
++    images,summary=compare_control([dict(row,output_PSNR_RGB='13')],[row])
++    assert summary['delta_psnr_vs_control']==1 and summary['illumination_MAE']=='NA'
++    assert summary['mill_per_level']==[] and summary['mill_per_content']==[]
++    assert images[0]['delta_illumination_MAE_vs_control']=='NA'
++
++
++def test_a0_a1_only_formula_identity_diff_and_all_common_initial_weights_equal():
++    a=experiment_config('configs/ablations/A0.yaml');b=experiment_config('configs/ablations/A1.yaml')
++    stripped=[]
++    for cfg in (a,b):
++        cfg=copy.deepcopy(cfg);cfg.pop('variant');cfg.pop('run_dir');cfg['model'].pop('affine_mode');stripped.append(cfg)
++    assert stripped[0]==stripped[1]
++    torch.manual_seed(42);m0=SDDNetV1(**model_options(a))
++    torch.manual_seed(42);m1=SDDNetV1(**model_options(b))
++    first,second=m0.state_dict(),m1.state_dict()
++    extra=set(first)-set(second)
++    assert len(extra)==4 and all(name.endswith('.rho') for name in extra)
++    assert not (set(second)-set(first))
++    for key,value in second.items():torch.testing.assert_close(value,first[key],rtol=0,atol=0)
++
++
++def test_best_validation_export_strict_own_best_full_count_and_metadata(monkeypatch,mill_root,tmp_path):
++    cfg=experiment_config('configs/ablations/A0.yaml');cfg.update(run_dir=str(tmp_path/'run'),device='cpu',amp=False)
++    cfg['data']['mill_root']=str(mill_root)
++    data_entry.prepare_data(cfg);save_resolved(cfg)
++    model=SDDNetV1();path=tmp_path/'run/checkpoints/best.pth'
++    state=formal_state(cfg,model.state_dict(),manifest_identity(cfg),epoch=2)
++    save_checkpoint(path,state)
++    seen=[]
++    def validation(loaded,dataset,device,**kw):
++        assert kw=={'details':True} and len(dataset)==12
++        for k,v in loaded.state_dict().items():torch.testing.assert_close(v,state['model'][k],rtol=0,atol=0)
++        seen.append(True)
++        rows=[dict(r,level=float(r['level']),PSNR_RGB=10.,SSIM_RGB=.5,input_PSNR_RGB=8.,input_SSIM_RGB=.4,
++                   illumination_MAE=.2,c_hat=.5,delta_psnr_vs_input=2.) for r in dataset.rows]
++        return dict(count=12,PSNR_RGB=10.,SSIM_RGB=.5,per_image=rows,per_level=[dict(level=i,count=4) for i in (1,5,10)])
++    monkeypatch.setattr(training,'validate',validation)
++    result=training.validate_best_checkpoint(cfg,path)
++    assert result['count']==12 and result['best_epoch']==2 and len(seen)==1
++    provenance=read_json(tmp_path/'run/validation/best/provenance.json')
++    assert provenance['checkpoint_sha256']==file_hash(path) and provenance['complete_validation_count']==12
++    assert len(read_csv(tmp_path/'run/validation/best/per_image.csv'))==12
++    assert not (tmp_path/'run/final_data').exists()
++    training.validate_best_checkpoint(cfg,path);assert len(seen)==1  # Existing evidence verified, not overwritten.
++    with pytest.raises(ValueError,match='this run'):training.validate_best_checkpoint(cfg,tmp_path/'other.pth')
++    bad=tmp_path/'bad_run';cfg2=copy.deepcopy(cfg);cfg2['run_dir']=str(bad)
++    data_entry.prepare_data(cfg2);save_resolved(cfg2)
++    corrupt=formal_state(cfg2,{},manifest_identity(cfg2),epoch=2)
++    save_checkpoint(bad/'checkpoints/best.pth',corrupt)
++    with pytest.raises(RuntimeError,match='Missing key'):training.validate_best_checkpoint(cfg2,bad/'checkpoints/best.pth')
++
++
++class CalibrationFixture(torch.nn.Module):
++    """Input-only disposable model for IO/label/view protocol integration."""
++    def __init__(self,**kwargs):
++        super().__init__();self.scale=torch.nn.Parameter(torch.tensor(.9))
++    def forward(self,x,return_latents=False):
++        assert not torch.is_grad_enabled() and not self.training and return_latents
++        return dict(enhanced=x*self.scale,c_hat=x.mean((1,2,3)).reshape(-1,1))
++
++
++def test_calibration_read_only_hashes_labels_views_and_no_old_writes(monkeypatch,tmp_path):
++    from engine import calibration
++    root=tmp_path/'data'
++    for split,offset in [('train',0),('validation',31)]:
++        for folder in ('input','gt'):(root/split/folder).mkdir(parents=True)
++        for content in range(2):
++            name=f'{split}_Scene{content}_a'
++            pixels=np.random.default_rng(offset+content).integers(0,256,(260,270,3),dtype=np.uint8)
++            Image.fromarray(pixels).save(root/split/'gt'/f'{name}.png')
++            for level in (1,10):Image.fromarray(pixels//2+level).save(root/split/'input'/f'{name}-{level}.png')
++    cfg=experiment_config('configs/ablations/A0.yaml');cfg.update(run_dir=str(tmp_path/'old'),device='cpu',amp=False)
++    cfg['data']['mill_root']=str(root);data_entry.prepare_data(cfg)
++    path=tmp_path/'old/checkpoints/best.pth'
++    save_checkpoint(path,formal_state(cfg,CalibrationFixture().state_dict(),manifest_identity(cfg)))
++    config=tmp_path/'cfg.yaml';config.write_text(yaml.safe_dump(cfg),encoding='utf-8')
++    sentinel=tmp_path/'old/status.json';write_json(sentinel,dict(state='original'))
++    before={p:file_hash(p) for p in (path,sentinel,tmp_path/'old/data_audit.json',tmp_path/'old/metadata/mill.csv')}
++    monkeypatch.setattr(calibration,'SDDNetV1',CalibrationFixture)
++    monkeypatch.setattr(calibration,'active_project_runs',lambda:[])
++    from scripts.condition_ablation import main
++    output=tmp_path/'calibration'
++    main(['calibration','--config',str(config),'--checkpoint',str(path),'--output',str(output)])
++    rows=read_csv(output/'calibration_per_image.csv')
++    assert len(rows)==16 and {r['view'] for r in rows}=={'full','center256'}
++    assert all(r['content_id'].endswith('_a') and float(r['c_gt']) in (0.,1.) for r in rows)
++    assert all(r['view_shape']=='1,3,256,256' for r in rows if r['view']=='center256')
++    assert read_json(output/'calibration_status.json')['train_label_median']==.5
++    assert all(file_hash(p)==sha for p,sha in before.items())
++    assert not (tmp_path/'old/config_resolved.yaml').exists()
++    with pytest.raises(FileExistsError):main(['calibration','--config',str(config),'--checkpoint',str(path),'--output',str(output)])
++    image=root/'train/input/train_Scene0_a-1.png';Image.new('RGB',(260,270)).save(image)
++    with pytest.raises(ValueError,match='image hash'):calibration.checked_records(cfg)

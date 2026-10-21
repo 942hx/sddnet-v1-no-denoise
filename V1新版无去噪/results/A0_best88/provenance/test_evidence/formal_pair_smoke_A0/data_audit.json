@@ -1,0 +1,61 @@
+{
+  "passed": true,
+  "path_base": "dataset root specified in configuration",
+  "splits": {
+    "mill/train": {
+      "input_files": 300,
+      "valid_pairs": 300,
+      "gt_files": 30,
+      "scenes": 30,
+      "level_counts": {
+        "1": 30,
+        "2": 30,
+        "3": 30,
+        "4": 30,
+        "5": 30,
+        "6": 30,
+        "7": 30,
+        "8": 30,
+        "9": 30,
+        "10": 30
+      },
+      "sizes": {
+        "600x400": 300
+      }
+    },
+    "mill/validation": {
+      "input_files": 120,
+      "valid_pairs": 120,
+      "gt_files": 12,
+      "scenes": 12,
+      "level_counts": {
+        "1": 12,
+        "2": 12,
+        "3": 12,
+        "4": 12,
+        "5": 12,
+        "6": 12,
+        "7": 12,
+        "8": 12,
+        "9": 12,
+        "10": 12
+      },
+      "sizes": {
+        "600x400": 120
+      }
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "official_exclusions": [],
+  "manifest_hashes": {
+    "mill": "fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37"
+  },
+  "scope": "MILL train/validation only; no test/LOL image read",
+  "group_basis": "No verified capture-series grouping. group_id blank; full content_id is used. Numeric prefixes are not physical-scene evidence.",
+  "mill_scene_overlaps": {
+    "train/validation": [],
+    "train/test": [],
+    "validation/test": []
+  }
+}

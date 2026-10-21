@@ -1,0 +1,4 @@
+{"at": "2026-10-21T15:08:38+08:00", "executable": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe", "argv": ["E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\freeze_review.py", "--output", "outputs/A0_frozen_review_20261021_150830", "--freeze-only"]}
+{"at": "2026-10-21T15:13:00+08:00", "executable": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe", "argv": ["E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\freeze_review.py", "--output", "outputs/A0_frozen_review_20261021_150830", "--run-frozen"]}
+{"at": "2026-10-21T15:17:00+08:00", "executable": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe", "argv": ["E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\freeze_review.py", "--output", "outputs/A0_frozen_review_20261021_150830", "--refresh-statistics"]}
+{"at": "2026-10-21T15:19:25+08:00", "executable": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe", "argv": ["E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\freeze_review.py", "--output", "outputs/A0_frozen_review_20261021_150830", "--report-only"]}

@@ -1,0 +1,36 @@
+{
+  "state": "complete",
+  "started_at": "2026-10-21T15:34:49+08:00",
+  "ended_at": "2026-10-21T15:35:11+08:00",
+  "training_started": false,
+  "A1_epoch": 53,
+  "A1_checkpoint_sha256": "98c309140d1a292e5807ff8364319d1df790601345c891395177990416e3f825",
+  "datasets": [
+    {
+      "dataset": "lolv1",
+      "split": "test",
+      "count": 15,
+      "raw_pair_hashes_match": true
+    },
+    {
+      "dataset": "lolv2_real",
+      "split": "test",
+      "count": 100,
+      "raw_pair_hashes_match": true
+    },
+    {
+      "dataset": "lolv2_synthetic",
+      "split": "test",
+      "count": 100,
+      "raw_pair_hashes_match": true
+    }
+  ],
+  "total_images": 215,
+  "A0_reused": true,
+  "A0_selection_unchanged": true,
+  "MILL_evaluated": false,
+  "profile": false,
+  "command": [
+    "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\compare_a1_lol.py"
+  ]
+}

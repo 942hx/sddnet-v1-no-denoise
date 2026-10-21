@@ -1,0 +1,12 @@
+# torch/torchvision are installed separately from the official CUDA index.
+numpy==2.0.2
+Pillow==11.3.0
+PyYAML==6.0.2
+tqdm==4.67.1
+matplotlib==3.9.4
+tensorboard==2.19.0
+pytorch-msssim==1.0.0
+scikit-image==0.24.0
+lpips==0.1.4
+psutil==6.1.1
+pytest==8.3.5

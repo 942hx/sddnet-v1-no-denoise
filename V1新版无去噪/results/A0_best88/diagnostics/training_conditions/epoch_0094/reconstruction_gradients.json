@@ -1,0 +1,5 @@
+{
+  "structure_branch_grad_norm_rec_only": 0.03984535112977028,
+  "degradation_branch_grad_norm_rec_only": 0.01917942613363266,
+  "illumination_head_grad_norm_rec_only": 0.05265619978308678
+}

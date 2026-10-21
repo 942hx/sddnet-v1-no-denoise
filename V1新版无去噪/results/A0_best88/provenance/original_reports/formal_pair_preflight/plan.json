@@ -1,0 +1,259 @@
+{
+  "status": "PASS",
+  "configs": {
+    "A0": {
+      "arch_revision": "v1_clean",
+      "run_dir": "outputs/condition_ablation/A0_seed42",
+      "seed": 42,
+      "epochs": 100,
+      "patch_size": 256,
+      "triplet_batch_size": 1,
+      "accumulation_steps": 2,
+      "num_workers": 0,
+      "pin_memory": true,
+      "amp": true,
+      "optimizer": "AdamW",
+      "learning_rate": 0.0001,
+      "weight_decay": 0.0001,
+      "scheduler": "cosine",
+      "min_lr": 1e-06,
+      "grad_clip_norm": 1.0,
+      "early_stopping": false,
+      "cpu_threads": 4,
+      "require_environment": "testmodel",
+      "device": "auto",
+      "data": {
+        "mill_root": "data/MILLs-DSLR",
+        "lolv1_root": "data/LOLdataset",
+        "lolv2_root": "data/LOLv2",
+        "group_mapping": null,
+        "scope": "mill_development"
+      },
+      "loss": {
+        "ssim_weight": 0.2,
+        "scene_weight": 0.1,
+        "illumination_weight": 0.05,
+        "margin": 0.2,
+        "lambda_cons": 0.02,
+        "consistency_warmup_epochs": 5,
+        "mining_mode": "fixed",
+        "record_triplet_details": true
+      },
+      "diagnostics": {
+        "patch_size": 128,
+        "grad_norm_every": 100,
+        "condition_contents": 3,
+        "condition_every_epoch": true
+      },
+      "evaluation": {
+        "precision": "float32",
+        "batch_size": 1,
+        "save_images": true
+      },
+      "profile": {
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "warmup": 20,
+        "iterations": 100,
+        "enabled": false
+      },
+      "ablation_version": 1,
+      "variant": "A0",
+      "model": {
+        "affine_mode": "bounded",
+        "local_init_std": 0.001,
+        "residual_gate": false,
+        "g_min": 0.25
+      },
+      "sampling": {
+        "mode": "triplet"
+      }
+    },
+    "A1": {
+      "arch_revision": "v1_clean",
+      "run_dir": "outputs/condition_ablation/A1_seed42",
+      "seed": 42,
+      "epochs": 100,
+      "patch_size": 256,
+      "triplet_batch_size": 1,
+      "accumulation_steps": 2,
+      "num_workers": 0,
+      "pin_memory": true,
+      "amp": true,
+      "optimizer": "AdamW",
+      "learning_rate": 0.0001,
+      "weight_decay": 0.0001,
+      "scheduler": "cosine",
+      "min_lr": 1e-06,
+      "grad_clip_norm": 1.0,
+      "early_stopping": false,
+      "cpu_threads": 4,
+      "require_environment": "testmodel",
+      "device": "auto",
+      "data": {
+        "mill_root": "data/MILLs-DSLR",
+        "lolv1_root": "data/LOLdataset",
+        "lolv2_root": "data/LOLv2",
+        "group_mapping": null,
+        "scope": "mill_development"
+      },
+      "loss": {
+        "ssim_weight": 0.2,
+        "scene_weight": 0.1,
+        "illumination_weight": 0.05,
+        "margin": 0.2,
+        "lambda_cons": 0.02,
+        "consistency_warmup_epochs": 5,
+        "mining_mode": "fixed",
+        "record_triplet_details": true
+      },
+      "diagnostics": {
+        "patch_size": 128,
+        "grad_norm_every": 100,
+        "condition_contents": 3,
+        "condition_every_epoch": true
+      },
+      "evaluation": {
+        "precision": "float32",
+        "batch_size": 1,
+        "save_images": true
+      },
+      "profile": {
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "warmup": 20,
+        "iterations": 100,
+        "enabled": false
+      },
+      "ablation_version": 1,
+      "variant": "A1",
+      "model": {
+        "affine_mode": "standard",
+        "local_init_std": 0.001,
+        "residual_gate": false,
+        "g_min": 0.25
+      },
+      "sampling": {
+        "mode": "triplet"
+      }
+    }
+  },
+  "config_differences": [
+    {
+      "field": "variant",
+      "A0": "A0",
+      "A1": "A1"
+    },
+    {
+      "field": "run_dir",
+      "A0": "outputs/condition_ablation/A0_seed42",
+      "A1": "outputs/condition_ablation/A1_seed42"
+    },
+    {
+      "field": "model.affine_mode",
+      "A0": "bounded",
+      "A1": "standard"
+    }
+  ],
+  "manifest_hashes": {
+    "mill": "fb794ef55f88f5d3f48080d88e2bc85016aa88c067d85bbfb00ba9a1c5887c37"
+  },
+  "seed": 42,
+  "common_initial_parameters_exact": true,
+  "common_state_sha256": "d3f4697bbb23be474f13ee8a6d42a1f1cdfb7b784d9516e1e6a7e0528d7324d5",
+  "bounded_only_parameters": {
+    "bottleneck_affine.rho": -2.1972246170043945,
+    "skip_affine0.rho": -2.1972246170043945,
+    "skip_affine1.rho": -2.1972246170043945,
+    "skip_affine2.rho": -2.1972246170043945
+  },
+  "parameters": {
+    "A0": 12270696,
+    "A1": 12270692
+  },
+  "git_head": "45e0a698ea9deafb8dd669442a2e11334cb99fd7",
+  "source_sha256": {
+    "configs/ablations/A0.yaml": "0326ca3bb3ae885c022acf901dc5411007b6c3b6856e76c843e2228515f3cf9b",
+    "configs/ablations/A1.yaml": "048bc386714599a0c3f7a78376d66dd82cc22cf41fc26b121fa99aa63095301d",
+    "configs/ablations/A1_init.yaml": "c4e8f59a992132fef1dc87ff8f4fa66fcda54f19fb696b0abbe2672fffad47ab",
+    "configs/ablations/A1_PK_random.yaml": "3b2e3a44887d736a7edf99191bf2a6592b41bb6d65eaec699eb8fc6de11af4d9",
+    "configs/ablations/A2.yaml": "eb4c555d30e082fc842830ff3e85bba9009c3fde4b0e0d0a5ad40ad65e079949",
+    "configs/ablations/A2_triplet.yaml": "02fb054a845b8473549d98a5b709f5fa8709b31282a6c9dc231a16980efbc925",
+    "configs/ablations/A3.yaml": "3da18198584a761a9419afe5408ec2c9439678790b649a92a685e15b87e36147",
+    "configs/ablations/A_batch16.yaml": "ed4758302bf0cb11797ab7b38e6e2693ae88c72202315bc2a88f6aeadda8d349",
+    "configs/ablations/A_batch18.yaml": "3b46290f00bbf35b1e700507a827892ec02bd99fd8e89f4c45ccf48fae4446f5",
+    "configs/ablations/base.yaml": "230a62fd68f49b898323b095650481049e5c40f2fcd202bc2fe6ab6096f0496c",
+    "configs/sddnet_v1.yaml": "9e385d0e0bc6dc96dcf9734cb1c50be6a087292a0f8b6111706b5278c6d34a93",
+    "configs/sddnet_v1_eval.yaml": "0c9de3a57c96ba5b5bfd821d36199f78c05eb95170a04017f69e6dd72ebbc544",
+    "configs/sddnet_v1_new_run.yaml": "d8007dcc83a11074a0c37e9a3ee6c1c3d301b26e181909376d54808c6222d6c2",
+    "datasets/__init__.py": "b124f288fbba26f87c6b100700af3622612eb1c4a6b63ca1d703b8a9534b9aff",
+    "datasets/common.py": "acf2c6f46a1e5266acc84e3f43ef0b410747b1aa233dbe4eeb0030bddfc8b849",
+    "datasets/mill_triplet_dataset.py": "7cd5e7d1969cb65fd66c26e23bb75b67ea2f091c7307f6405924a779ef9b307a",
+    "datasets/paired_dataset.py": "27975aba62435fbb538fd54b59c1ccda7687c045290f2260d5fb0827e6f033ff",
+    "datasets/pk_dataset.py": "63314e177e1d84af8e1c995dc9254b03d5ef882d8f94bf1714ffa78e887df484",
+    "datasets/sampling.py": "9ad91701806c36f62656772c79c084561432ded605a7d07a440a0f0ee07b82c9",
+    "engine/__init__.py": "988f1f43071432cf97394b9377fdae698d8c81060b3f920eb64058678acca632",
+    "engine/calibration.py": "9d69814a091944eec94d27ff72ee4cafed5723d1a2192dc8326af30d6ac67754",
+    "engine/condition_diagnostics.py": "691aada0e30ba273355ed715a6e97df7fb55ffd829208d102901da12cd9358f2",
+    "engine/diagnostics.py": "76da7a5839e14de49066dba57c6ff0a690a1472a7c467e0bb2f00bcb515c72a3",
+    "engine/evaluation.py": "b0b1e743e227291c42c094f433d8c143e5c2b26b48858d98b23f4a3ab69a4e41",
+    "engine/profiling.py": "684213b7ec668466075c4ab52ddfcd3bf3873d73622644fb50da43b063d76068",
+    "engine/reporting.py": "d4adc202ab4dc034e56c0582f84d2550cf944280010650d237e761c41ea2e04b",
+    "engine/smoke.py": "4cfdbbe06e1306c1195ded96793033f774af32820236d2e8f530614cf64d62c6",
+    "engine/training.py": "64cc5bebcb3b585771032aaa254b2f3a696513b2f63e7e5898d026c56cef6a25",
+    "losses/__init__.py": "500b28d7eae3fed343400ccc21c54730f5aaf6a983a3f7a165d97cd2a922fd92",
+    "losses/mining.py": "f9d7bb5e41e348d7fe8eae71a154eb1eaf33c0eeeab1c1c1e1e0828b4b853fd6",
+    "losses/sdd_loss.py": "98893b50d0e7cada96846e6d0974933c99951e47cbb85f2cf7daf1e553543120",
+    "losses/ssim.py": "10c8fba0eb177eef0bd87bbd7c2bd1bc0b4a2c47922d13fb2f10210d96fcc4b3",
+    "models/__init__.py": "cb5fb16e83f8bf77b8a02033225b59b901e7f3674be7cf306db1436c6428df51",
+    "models/sddnet_v1.py": "daf6298d76de29a295e46dede6efcf26f655159ae6b284723405fcfc93d25494",
+    "README.md": "331396bbf1ea97da595b892881383efad666cd41de1ee3693a4342693fcf1526",
+    "requirements-lock.txt": "c4b5a4b70d994658ce0f555214962062fb924e656705e6ad68b4dcba296c8938",
+    "requirements.txt": "651b907a6e149fbefd1f03d5d8ea5316b71cf739a4bc773809fedf50ccc55df2",
+    "scripts/__init__.py": "b0b90ac0dbbfcca8ee4391cf040a99ce21927a9ec0cd3c1b31bf84ce869ced08",
+    "scripts/check_env.py": "b9c433029cf5aba165e84284d403cb6640a685d3a6e876e15cf43fb08d522e86",
+    "scripts/condition_ablation.py": "3bf6db54c45fce1d27e06daf45fdc786b2878ed02fa3751282df3b3bf750b9c4",
+    "scripts/formal_pair.py": "0c64ff5487aabeef8b51cba2182ec2aa249b44b3f657fdcf150d976646523df0",
+    "scripts/install_dependencies.py": "88a030b968582b21987e92f472d70e123bcfe43cc4da4ed08e94f4b943f6e6a3",
+    "scripts/prepare_data.py": "25025c28f7ea29231aef3f194b27f8ac9dd2fb487181e561ed55a44fcf44b6c6",
+    "scripts/run_A0_A1_train_only.bat": "d58fe7eeb905ec3e6e04e434161d3db3ef6e20e6a0ebc3eddf82c9359097a473",
+    "scripts/run_pipeline.py": "695b1a77ef4cf4d3d53a9ea43b09e8085951655914cbeb09f12fd1daa0b67682",
+    "tests/__init__.py": "5e8278794a4632e81e21565df82bf184ff8219342aa98924d555d91a604610ed",
+    "tests/test_acceptance.py": "1eb5e9e138ef5edd4a2abc7c9b5baf9901698a73e68cb37b4707d0dc4f4521bf",
+    "tests/test_condition_ablation.py": "8bd6b84a1c804f33c6ec65081b58166e01c2d6613a35a5607d80f81cb1da4d35",
+    "tests/test_condition_pipeline.py": "48fff367cc354c08afa2ea0cbbb599da7b7107d699fdf3e920c20bfc9e6ca470",
+    "tests/test_formal_pair.py": "c32b38dfb3aa395d35f7e038f0b49beda114e5301303234f590f7b71f531b308",
+    "tests/test_log_recovery.py": "fb1160680b960adf57751a2ba02606993363741ad84aef9102925b4b4f305e23",
+    "tests/test_training_regressions.py": "679886a58aa1aa348eb06d216a345a97214a0c58c77c8f9e7974f81c303eb3a9",
+    "utils/__init__.py": "1d97ed9439aeaea2782e06e03f2686bd6aa5aa75673acf4f91a3335dd2a74620",
+    "utils/ablation_metrics.py": "8e2760809e9c1f38a46a5c957f66b47a04e5524ea754dfeb2c3b8bc689e91170",
+    "utils/experiment.py": "472cb166e3c17d0cfbdacb2ec7c492f4bd24877ddf6c039f2ffc8926b59a29f8",
+    "utils/io.py": "ea2a76df317ad3cea1506c71fe35a390aba071fcee773597c0b5fedd1434cfe7",
+    "utils/metrics.py": "3430b80242b3c704b5a9a9c5df92553e18da51968172cba0f3a9d39abe08d675",
+    "utils/runtime.py": "f2625e37a6c31c82b0a2a2a8c065384e4ee42998d3cf2f3419031cf5f0f69199"
+  },
+  "executable": "C:\\software\\anaconda3\\envs\\testmodel\\python.exe",
+  "torch": "2.5.1+cu121",
+  "cuda": "12.1",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "per_epoch": {
+    "anchor_images": 300,
+    "image_exposures": 900,
+    "update_attempts": 150
+  },
+  "per_variant": {
+    "epochs": 100,
+    "image_exposures": 90000,
+    "update_attempts": 15000
+  },
+  "update_note": "Successful updates and AMP skips are measured, not assumed. No early stop.",
+  "training_boundary": "Serial fresh A0 then A1; full MILL validation only. No final tests, LPIPS or profile."
+}

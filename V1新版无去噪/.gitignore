@@ -1,0 +1,25 @@
+# Local datasets and large artifacts are preserved, never uploaded as ordinary Git.
+/outputs/
+/data/
+/cache/
+/.cleanup_work/
+__pycache__/
+.pytest_cache/
+
+# Publish only reviewed text evidence; binary artifacts remain local.
+!/results/
+!/results/A0_best88/
+/results/A0_best88/**
+!/results/A0_best88/**/
+!/results/A0_best88/**/*.md
+!/results/A0_best88/**/*.txt
+!/results/A0_best88/**/*.csv
+!/results/A0_best88/**/*.json
+!/results/A0_best88/**/*.jsonl
+!/results/A0_best88/**/*.yaml
+!/results/A0_best88/**/*.yml
+!/results/A0_best88/**/*.log
+!/results/A0_best88/**/*.xml
+!/results/A0_best88/**/*.diff
+# This original ~10 MB log is retained locally; lighter training records publish.
+/results/A0_best88/training/A0_seed42/train.log

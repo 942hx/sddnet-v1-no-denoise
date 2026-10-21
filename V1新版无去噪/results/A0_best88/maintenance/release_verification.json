@@ -1,0 +1,775 @@
+{
+  "status": "PASS",
+  "verified_local_date": "2026-10-21T16:50:48.739301",
+  "scope": "E:\\结构亮度结构解耦\\V1新版无去噪",
+  "identity": {
+    "model": "SDDNet-v1",
+    "variant": "A0",
+    "seed": 42,
+    "arch_revision": "v1_clean",
+    "best_epoch": 88,
+    "completed_training_epochs": 100,
+    "affine_mode": "bounded",
+    "residual_gate": false,
+    "independent_denoiser": false,
+    "wavelet": false
+  },
+  "checkpoints": [
+    {
+      "path": "results/A0_best88/checkpoints/best.pth",
+      "size": 147456330,
+      "sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+      "original_bytes_unchanged": true,
+      "reserialized": false
+    },
+    {
+      "path": "results/A0_best88/checkpoints/last_epoch100.pth",
+      "size": 147456330,
+      "sha256": "e988c1051c7922b8b4b752191734018ef7799b71cbca6e50deaed4703e29f1a0",
+      "original_bytes_unchanged": true,
+      "reserialized": false
+    }
+  ],
+  "numerical_equivalence": {
+    "status": "PASS",
+    "device": "CPU",
+    "dtype": "float32",
+    "cases": [
+      {
+        "name": "(1, 3, 256, 256)",
+        "shape": [
+          1,
+          3,
+          256,
+          256
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "(1, 3, 255, 257)",
+        "shape": [
+          1,
+          3,
+          255,
+          257
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "(1, 3, 1, 1)",
+        "shape": [
+          1,
+          3,
+          1,
+          1
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "(1, 3, 400, 600)",
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "mill:Test1-1.png",
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "lolv1:1.png",
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "lolv2_real:00690.png",
+        "shape": [
+          1,
+          3,
+          400,
+          600
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      },
+      {
+        "name": "lolv2_synthetic:r00816405t.png",
+        "shape": [
+          1,
+          3,
+          384,
+          384
+        ],
+        "outputs": {
+          "enhanced": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fs": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "Fd": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          },
+          "c_hat": {
+            "equal": true,
+            "max_abs_error": 0.0,
+            "max_relative_error": 0.0
+          }
+        }
+      }
+    ],
+    "strict": true,
+    "keys_shapes_dtypes_equal": true,
+    "parameters": 12270696,
+    "initialization_and_rng_equal": true,
+    "training_contract_equal": true,
+    "all_loss_terms_equal": [
+      "total",
+      "rec",
+      "l1",
+      "ssim_loss",
+      "scene",
+      "illumination",
+      "cons",
+      "weighted_ssim",
+      "weighted_scene",
+      "weighted_illum",
+      "weighted_cons",
+      "lambda_cons",
+      "triplet_anchor_count",
+      "triplet_valid_count",
+      "triplet_skipped",
+      "valid_negative_count",
+      "single_candidate_fraction",
+      "cross_level_fallback",
+      "semihard_selected",
+      "hard_fallback",
+      "embedding_dimension_variance",
+      "d_ap",
+      "d_an",
+      "active_triplet_ratio",
+      "d_ap_p10",
+      "d_ap_median",
+      "d_ap_p90",
+      "d_an_p10",
+      "d_an_median",
+      "d_an_p90"
+    ],
+    "loss_details_equal": true,
+    "fixed_seed_triplet_sampling_and_synchronized_augmentation_equal": true,
+    "best_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083"
+  },
+  "actual_last_state_restore": {
+    "status": "PASS",
+    "device": "cuda",
+    "completed_epoch": 100,
+    "best_epoch": 88,
+    "model_optimizer_scheduler_scaler_sampler_loader_generator_equal": true,
+    "optimizer_updates_executed": 0,
+    "checkpoint_rewritten": false
+  },
+  "automated_tests": {
+    "exit_code": 0,
+    "passed": 75,
+    "failed": [],
+    "skipped": [],
+    "collection_errors": [],
+    "tests": [
+      "tests/test_a0_conditions.py::test_variable_tail_accumulation_gradient_equivalence",
+      "tests/test_a0_conditions.py::test_fixed_validation_donors_no_fixed_points_and_state_restoration",
+      "tests/test_a0_conditions.py::test_development_data_audit_skips_test_lol_and_detects_content_leak",
+      "tests/test_a0_conditions.py::test_scene_cluster_bootstrap_counts_clusters_not_levels",
+      "tests/test_a0_conditions.py::test_a0_metadata_statistics_do_not_change_original_loss_or_gradients",
+      "tests/test_acceptance.py::test_shapes_return_contract_prior_and_affine[shape0]",
+      "tests/test_acceptance.py::test_shapes_return_contract_prior_and_affine[shape1]",
+      "tests/test_acceptance.py::test_shapes_return_contract_prior_and_affine[shape2]",
+      "tests/test_acceptance.py::test_shapes_return_contract_prior_and_affine[shape3]",
+      "tests/test_acceptance.py::test_shapes_return_contract_prior_and_affine[shape4]",
+      "tests/test_acceptance.py::test_invalid_input_messages[x0-ValueError]",
+      "tests/test_acceptance.py::test_invalid_input_messages[x1-ValueError]",
+      "tests/test_acceptance.py::test_invalid_input_messages[x2-TypeError]",
+      "tests/test_acceptance.py::test_invalid_input_messages[x3-ValueError]",
+      "tests/test_acceptance.py::test_prior_is_computed_before_padding",
+      "tests/test_acceptance.py::test_exact_label_shape_triplet_formula_and_warmup",
+      "tests/test_acceptance.py::test_consistency_cosine_and_unclamped_l1_gradient",
+      "tests/test_acceptance.py::test_reconstruction_paths_and_hook_restoration",
+      "tests/test_acceptance.py::test_initialization_and_decay_groups",
+      "tests/test_acceptance.py::test_weight_resume_scheduler_scaler_rng_and_legacy_rejection",
+      "tests/test_acceptance.py::test_real_cuda_amp_accumulation_step",
+      "tests/test_acceptance.py::test_sampler_and_accumulation_tail",
+      "tests/test_acceptance.py::test_metadata_triplet_alignment_and_same_level_negative",
+      "tests/test_acceptance.py::test_metrics_properties_and_reference",
+      "tests/test_acceptance.py::test_pretrained_lpips_identical_image",
+      "tests/test_acceptance.py::test_run_lock",
+      "tests/test_log_recovery.py::test_locked_csv_retains_new_snapshot_and_commits_after_unlock",
+      "tests/test_log_recovery.py::test_locked_non_log_destination_fails_explicitly",
+      "tests/test_log_recovery.py::test_real_windows_file_sharing_lock",
+      "tests/test_release.py::test_release_checkpoint_is_exact_frozen_best88",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[..]",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[../sibling/output]",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[data/x]",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[cache/x]",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[results/A0_best88/x]",
+      "tests/test_release.py::test_protected_output_rejected_without_writes[.git/index]",
+      "tests/test_release.py::test_existing_output_rejected_and_evidence_unchanged",
+      "tests/test_release.py::test_only_a0_architecture_options_are_supported",
+      "tests/test_release.py::test_a0_bounded_affine_formula_and_rho",
+      "tests/test_release.py::test_cli_cannot_write_frozen_results[train]",
+      "tests/test_release.py::test_cli_cannot_write_frozen_results[evaluate]",
+      "tests/test_release.py::test_cli_cannot_write_frozen_results[infer]",
+      "tests/test_release.py::test_cli_cannot_write_frozen_results[prepare_data]",
+      "tests/test_release.py::test_train_refuses_best_or_frozen_last_as_same_run_resume",
+      "tests/test_release.py::test_evaluate_is_explicit_and_limits_are_not_silent",
+      "tests/test_release.py::test_cli_checkpoint_rejection_precedes_output_creation",
+      "tests/test_release.py::test_normal_inference_does_not_accept_true_levels",
+      "tests/test_release.py::test_fixed_triplets_reject_other_layout_and_miner",
+      "tests/test_release.py::test_junction_output_rejected",
+      "tests/test_training_regressions.py::test_diagnostic_frequency_accumulation_and_missing_values[0-12-expected0]",
+      "tests/test_training_regressions.py::test_diagnostic_frequency_accumulation_and_missing_values[1-11-expected1]",
+      "tests/test_training_regressions.py::test_diagnostic_frequency_accumulation_and_missing_values[100-400-expected2]",
+      "tests/test_training_regressions.py::test_unsampled_steps_never_enter_amp_probe_or_branch_traversal",
+      "tests/test_training_regressions.py::test_amp_skip_uses_successful_steps_and_unscaled_preclip_norms",
+      "tests/test_training_regressions.py::test_diagnostic_frequency_does_not_change_updates_loss_or_scheduler",
+      "tests/test_training_regressions.py::test_sampling_resume_keeps_global_successful_update_phase",
+      "tests/test_training_regressions.py::test_branch_norms_batch_one_cpu_transfer_without_item",
+      "tests/test_training_regressions.py::test_amp_candidate_fuses_scale_and_skip_flag_in_one_transfer",
+      "tests/test_training_regressions.py::test_unsupported_scaler_fails_explicitly_instead_of_guessing_skip",
+      "tests/test_training_regressions.py::test_direct_evaluator_cannot_bypass_kind_guard[smoke]",
+      "tests/test_training_regressions.py::test_direct_evaluator_cannot_bypass_kind_guard[None]",
+      "tests/test_training_regressions.py::test_direct_evaluator_cannot_bypass_kind_guard[unknown]",
+      "tests/test_training_regressions.py::test_formal_evaluation_runs_metrics_on_one_temporary_fixture",
+      "tests/test_training_regressions.py::test_formal_guard_keeps_existing_metadata_checks[arch_revision-Legacy resume rejected]",
+      "tests/test_training_regressions.py::test_formal_guard_keeps_existing_metadata_checks[contract-contract]",
+      "tests/test_training_regressions.py::test_formal_guard_keeps_existing_metadata_checks[manifest_hashes-fingerprint]",
+      "tests/test_training_regressions.py::test_formal_resume_and_generic_smoke_diagnostics_policy",
+      "tests/test_training_regressions.py::test_cli_gradient_option_and_yaml_default[0]",
+      "tests/test_training_regressions.py::test_cli_gradient_option_and_yaml_default[1]",
+      "tests/test_training_regressions.py::test_cli_gradient_option_and_yaml_default[100]",
+      "tests/test_training_regressions.py::test_real_cuda_amp_skip_and_frequency_invariance",
+      "tests/test_training_regressions.py::test_real_model_cpu_light_smoke_and_temporary_checkpoint",
+      "tests/test_training_regressions.py::test_epoch_lr_csv_tensorboard_groups_and_scheduler_sequence",
+      "tests/test_training_regressions.py::test_resumed_lr_and_weights_match_uninterrupted_cpu_driver",
+      "tests/test_training_regressions.py::test_direct_formal_training_rejects_smoke_before_constructing_trainer"
+    ],
+    "warnings": [
+      "torchvision pretrained argument deprecation",
+      "torchvision legacy weight enum argument deprecation"
+    ],
+    "duration_seconds": 15.67,
+    "command": "python -B .cleanup_work/run_tests.py final",
+    "collection": "tests/ after deletion; PYTEST_DISABLE_PLUGIN_AUTOLOAD=1; -p no:cacheprovider",
+    "operating_system": "Windows; real junction fixture executed",
+    "cuda_test_names": [
+      "tests/test_acceptance.py::test_real_cuda_amp_accumulation_step",
+      "tests/test_training_regressions.py::test_real_cuda_amp_skip_and_frequency_invariance"
+    ],
+    "initial_validation_issues": {
+      "initial_passed": 61,
+      "initial_failed": 13,
+      "resolved": [
+        "Existing disposable TinyModel/FixtureModel mocks now explicitly accept and assert the exact A0 options.",
+        "The OS sandbox initially denied native junction creation; the same project-local fixture passed with permission.",
+        "Native cmd output was captured as bytes to remove a GBK decoder thread warning; the junction target was never written."
+      ],
+      "final_unresolved_failures": []
+    }
+  },
+  "cli_verification": {
+    "commands": [
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.train",
+          "--help"
+        ],
+        "returncode": 0,
+        "stdout": "usage: train.py [-h] [--config CONFIG] --output OUTPUT [--resume RESUME]\n                [--grad-norm-every GRAD_NORM_EVERY] [--clear-stale-lock]\n\nTrain A0 on MILL train/validation only. Never starts final test evaluation.\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --output OUTPUT\n  --resume RESUME\n  --grad-norm-every GRAD_NORM_EVERY\n  --clear-stale-lock\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.evaluate",
+          "--help"
+        ],
+        "returncode": 0,
+        "stdout": "usage: evaluate.py [-h] [--config CONFIG] [--checkpoint CHECKPOINT] --dataset\n                   {mill,lolv1,lolv2_real,lolv2_synthetic,all} --output OUTPUT\n                   [--device {auto,cpu,cuda}] [--max-images MAX_IMAGES]\n                   [--mill-root MILL_ROOT] [--lolv1-root LOLV1_ROOT]\n                   [--lolv2-root LOLV2_ROOT]\n\nExplicit A0 test evaluation; full datasets run only when requested.\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --checkpoint CHECKPOINT\n  --dataset {mill,lolv1,lolv2_real,lolv2_synthetic,all}\n  --output OUTPUT\n  --device {auto,cpu,cuda}\n  --max-images MAX_IMAGES\n                        Explicitly limited smoke evaluation, never a complete-\n                        test result.\n  --mill-root MILL_ROOT\n  --lolv1-root LOLV1_ROOT\n  --lolv2-root LOLV2_ROOT\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.infer",
+          "--help"
+        ],
+        "returncode": 0,
+        "stdout": "usage: infer.py [-h] [--config CONFIG] [--checkpoint CHECKPOINT] --input INPUT\n                --output OUTPUT [--device {auto,cpu,cuda}]\n\nEnhance a single image or a folder using the strictly loaded A0 model.\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --checkpoint CHECKPOINT\n  --input INPUT\n  --output OUTPUT\n  --device {auto,cpu,cuda}\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.verify_release",
+          "--help"
+        ],
+        "returncode": 0,
+        "stdout": "usage: verify_release.py [-h] [--config CONFIG] [--checkpoint CHECKPOINT]\n\nRead-only A0 release checks and one CPU small-tensor forward, no training.\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --checkpoint CHECKPOINT\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.verify_release",
+          "--config",
+          "configs/a0.yaml",
+          "--checkpoint",
+          "results/A0_best88/checkpoints/best.pth"
+        ],
+        "returncode": 0,
+        "stdout": "{\n  \"status\": \"PASS\",\n  \"variant\": \"A0\",\n  \"epoch\": 88,\n  \"sha256\": \"a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083\",\n  \"strict\": true,\n  \"parameters\": 12270696,\n  \"raw_shape\": [\n    1,\n    3,\n    17,\n    25\n  ],\n  \"precision\": \"CPU FP32\",\n  \"training_started\": false\n}\n",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.evaluate",
+          "--config",
+          "configs/a0.yaml",
+          "--checkpoint",
+          "results/A0_best88/checkpoints/best.pth",
+          "--dataset",
+          "mill",
+          "--max-images",
+          "1",
+          "--device",
+          "cpu",
+          "--output",
+          "E:\\结构亮度结构解耦\\V1新版无去噪\\.cleanup_work\\cli\\MILL limited"
+        ],
+        "returncode": 0,
+        "stdout": "Explicitly selected evaluation completed with the same checkpoint.\n",
+        "stderr": "C:\\software\\anaconda3\\envs\\testmodel\\lib\\site-packages\\torchvision\\models\\_utils.py:208: UserWarning: The parameter 'pretrained' is deprecated since 0.13 and may be removed in the future, please use 'weights' instead.\n  warnings.warn(\nC:\\software\\anaconda3\\envs\\testmodel\\lib\\site-packages\\torchvision\\models\\_utils.py:223: UserWarning: Arguments other than a weight enum or `None` for 'weights' are deprecated since 0.13 and may be removed in the future. The current behavior is equivalent to passing `weights=AlexNet_Weights.IMAGENET1K_V1`. You can also use `weights=AlexNet_Weights.DEFAULT` to get the most up-to-date weights.\n  warnings.warn(msg)\n\nTest mill:   0%|          | 0/1 [00:00<?, ?it/s]\nTest mill: 100%|██████████| 1/1 [00:01<00:00,  1.16s/it]\nTest mill: 100%|██████████| 1/1 [00:01<00:00,  1.16s/it]\n"
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.infer",
+          "--config",
+          "configs/a0.yaml",
+          "--input",
+          "data/LOLdataset/eval15/low/1.png",
+          "--device",
+          "cpu",
+          "--output",
+          "E:\\结构亮度结构解耦\\V1新版无去噪\\.cleanup_work\\cli\\单图 中文"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.infer",
+          "--input",
+          "E:\\结构亮度结构解耦\\V1新版无去噪\\.cleanup_work\\cli\\输入 文件夹",
+          "--device",
+          "cpu",
+          "--output",
+          "E:\\结构亮度结构解耦\\V1新版无去噪\\.cleanup_work\\cli\\文件夹 推理"
+        ],
+        "returncode": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      {
+        "command": [
+          "python",
+          "-m",
+          "scripts.prepare_data",
+          "--help"
+        ],
+        "returncode": 0,
+        "stdout": "usage: prepare_data.py [-h] [--config CONFIG] --output OUTPUT\n                       [--scope {development,final}]\n\nDecode and hash all paired data; produce explicit manifests and a fail-closed\naudit.\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --config CONFIG\n  --output OUTPUT\n  --scope {development,final}\n",
+        "stderr": ""
+      }
+    ],
+    "full_training_executed": false,
+    "full_evaluation_executed": false,
+    "small_evaluation": {
+      "failures": {},
+      "checkpoint": "E:\\结构亮度结构解耦\\V1新版无去噪\\results\\A0_best88\\checkpoints\\best.pth",
+      "checkpoint_sha256": "a24a56157420d3868ab64ab75d4e91066084237ea9bfc082d4449a666c29b083",
+      "epoch": 88,
+      "complete": true,
+      "datasets": [
+        "mill"
+      ],
+      "limited_smoke": true,
+      "max_images": 1,
+      "protocol": "FP32, batch1, native RGB, no tiles/TTA/GT adjustment; arithmetic mean per image",
+      "cudnn_allow_tf32": true,
+      "matmul_allow_tf32": false,
+      "ssim": "pytorch-msssim: data_range=1, win11, sigma1.5, K=(.01,.03), nonnegative=False"
+    },
+    "single_image_inference": true,
+    "two_synthetic_images_folder_inference": true,
+    "chinese_and_space_paths": true
+  },
+  "filesystem_verification": {
+    "status": "PASS",
+    "original_data": {
+      "status": "PASS",
+      "files": 6137,
+      "bytes": 1609115786,
+      "size_sha256_mtime_unchanged": true,
+      "no_added_or_removed_files": true,
+      "baseline_manifest_sha256": "185a7286eae9b493a73879d131bebf300d3f20dea9382e8bd3da72c5be03da44"
+    },
+    "preserved_originals": {
+      "status": "PASS",
+      "files": 1906,
+      "bytes": 532276407,
+      "per_file_size_sha256_unchanged": true,
+      "manifest_sha256": "d5e583b5c58a565d3c04829a2a1981c16fefb53f4b66ca052796048b3c2599c6"
+    },
+    "lpips_cache": {
+      "status": "PASS",
+      "files": 1,
+      "original_files": [
+        {
+          "path": "cache/torch/checkpoints/alexnet-owt-7be5be79.pth",
+          "type": "file",
+          "size": 244408911,
+          "sha256": "7be5be791159472b1fbf3c69796f7cb30dca7ad8466c2df70058c37116cdee02",
+          "mtime_ns": 1792478721805264200,
+          "action": "protect",
+          "destination": "cache/torch/checkpoints/alexnet-owt-7be5be79.pth",
+          "reason": "原始数据/必要现有官方LPIPS依赖，原地只读保护"
+        }
+      ],
+      "sha256_mtime_unchanged": true
+    },
+    "sources": {
+      "syntax_files": 38,
+      "syntax_status": "PASS",
+      "actual_imports": {
+        "datasets.common": "E:\\结构亮度结构解耦\\V1新版无去噪\\datasets\\common.py",
+        "datasets.mill_triplet_dataset": "E:\\结构亮度结构解耦\\V1新版无去噪\\datasets\\mill_triplet_dataset.py",
+        "datasets.paired_dataset": "E:\\结构亮度结构解耦\\V1新版无去噪\\datasets\\paired_dataset.py",
+        "datasets.sampling": "E:\\结构亮度结构解耦\\V1新版无去噪\\datasets\\sampling.py",
+        "engine.condition_diagnostics": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\condition_diagnostics.py",
+        "engine.diagnostics": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\diagnostics.py",
+        "engine.evaluation": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\evaluation.py",
+        "engine.inference": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\inference.py",
+        "engine.release": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\release.py",
+        "engine.reporting": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\reporting.py",
+        "engine.training": "E:\\结构亮度结构解耦\\V1新版无去噪\\engine\\training.py",
+        "losses.mining": "E:\\结构亮度结构解耦\\V1新版无去噪\\losses\\mining.py",
+        "losses.sdd_loss": "E:\\结构亮度结构解耦\\V1新版无去噪\\losses\\sdd_loss.py",
+        "losses.ssim": "E:\\结构亮度结构解耦\\V1新版无去噪\\losses\\ssim.py",
+        "models.sddnet_v1": "E:\\结构亮度结构解耦\\V1新版无去噪\\models\\sddnet_v1.py",
+        "scripts.evaluate": "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\evaluate.py",
+        "scripts.infer": "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\infer.py",
+        "scripts.prepare_data": "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\prepare_data.py",
+        "scripts.train": "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\train.py",
+        "scripts.verify_release": "E:\\结构亮度结构解耦\\V1新版无去噪\\scripts\\verify_release.py",
+        "utils.ablation_metrics": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\ablation_metrics.py",
+        "utils.experiment": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\experiment.py",
+        "utils.io": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\io.py",
+        "utils.metrics": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\metrics.py",
+        "utils.paths": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\paths.py",
+        "utils.runtime": "E:\\结构亮度结构解耦\\V1新版无去噪\\utils\\runtime.py"
+      },
+      "import_status": "PASS",
+      "unique_config": "configs/a0.yaml",
+      "experiment_checkpoints": [
+        "results/A0_best88/checkpoints/best.pth",
+        "results/A0_best88/checkpoints/last_epoch100.pth"
+      ]
+    },
+    "boundary": {
+      "status": "PASS",
+      "allowed_root": "E:\\结构亮度结构解耦\\V1新版无去噪",
+      "symlinks_or_junctions_remaining": [],
+      "mutation_plan_realpath_checked": true,
+      "scope_enforced_for_each_move_delete": true,
+      "parent_and_siblings_write_operations": 0,
+      "environment_install_upgrade_operations": 0
+    },
+    "deletion": {
+      "original_files": 5302,
+      "original_bytes": 5300025737,
+      "original_empty_directories": 1842,
+      "all_original_deleted_files_absent": true,
+      "removed_empty_directories_reused_for_new_docs": [
+        "docs/"
+      ]
+    },
+    "git": {
+      "status": "BLOCKED_PARENT_REPOSITORY",
+      "worktree_root": "E:/结构亮度结构解耦",
+      "git_dir": "E:/结构亮度结构解耦/.git",
+      "common_dir": "E:\\结构亮度结构解耦\\.git",
+      "branch": "新版v1无去噪",
+      "upstream": "origin/新版v1无去噪",
+      "origin_fetch": "https://github.com/942hx/sddnet-v1-no-denoise.git",
+      "origin_push": "https://github.com/942hx/sddnet-v1-no-denoise.git",
+      "existing_head": "45e0a698ea9deafb8dd669442a2e11334cb99fd7",
+      "new_commit": null,
+      "push_attempted": false,
+      "remote_tip_verified": false,
+      "ahead_behind_cached_upstream": "0\t0",
+      "git_writes_executed": false,
+      "preexisting_parent_changes_preserved": true
+    },
+    "eligible_files_before_final_report": 1421,
+    "credential_pattern_scan": {
+      "status": "PASS",
+      "matches": 0
+    },
+    "elapsed_seconds": 43.46223568916321
+  },
+  "active_source_changes_manifest": "source_changes.csv",
+  "historical_source_reference": {
+    "temporary_reference_sha256": "daf6298d76de29a295e46dede6efcf26f655159ae6b284723405fcfc93d25494",
+    "golden_reference_sha256": "0f40a40574ac75d640ab7008c17d82326223eca9a33664732806bdb044fb3889",
+    "captured_before_replacing_old_model": true,
+    "old_output_reference_removed_after_success": true
+  },
+  "not_verified": [
+    {
+      "item": "100-epoch formal retraining or actual resume updates",
+      "reason": "User forbids training; only disposable-unit updates and zero-update real last restoration were run."
+    },
+    {
+      "item": "Complete four-dataset reevaluation / complete validation",
+      "reason": "User forbids full reevaluation; historical metrics preserved, MILL one-image smoke only."
+    },
+    {
+      "item": "CUDA old/new elementwise numerical equivalence",
+      "reason": "CPU FP32 was the deterministic old/new reference; CUDA AMP unit tests are separate evidence."
+    },
+    {
+      "item": "Fresh environment installation",
+      "reason": "Existing testmodel is protected; nothing installed or upgraded."
+    },
+    {
+      "item": "Remote push and remote tip",
+      "reason": "Parent repository/git-dir/common-dir are outside the only allowed modification scope."
+    }
+  ],
+  "local_only": {
+    "all_materials_in_this_task": true,
+    "uploaded_files": [],
+    "new_commit": null,
+    "large_material_categories": [
+      "all original data/",
+      "both full checkpoints",
+      "local LPIPS/AlexNet cache",
+      "TensorBoard event files",
+      "bulk preview/enhanced/comparison images"
+    ],
+    "verified_large_file_upload_mechanism": null
+  },
+  "unresolved_file_ownership": [],
+  "temporary_cleanup": {
+    "status": "PASS",
+    "path": ".cleanup_work/",
+    "files_deleted": 420,
+    "bytes_deleted": 804588686,
+    "empty_directories_deleted": 235,
+    "directory_absent": true,
+    "regenerable_source_caches_remaining": []
+  },
+  "current_document_links": {
+    "status": "PASS",
+    "files": 5,
+    "broken": []
+  },
+  "active_old_path_search": {
+    "status": "PASS",
+    "matches": [],
+    "historical_records_intentionally_excluded": true
+  },
+  "final_deletion_manifest": {
+    "path": "deleted_files.csv",
+    "sha256": "f94f24790415692e02703a70dfd4c65d0010dede45525d460b15da65f5beb85a",
+    "original_file_count": 5302,
+    "temporary_file_count": 420
+  }
+}
