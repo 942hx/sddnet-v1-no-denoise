@@ -2,6 +2,8 @@
 /outputs/
 /data/
 /cache/
+/handoff/
+/results/research_history/
 /.cleanup_work/
 __pycache__/
 .pytest_cache/

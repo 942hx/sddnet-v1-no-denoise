@@ -17,6 +17,8 @@ ARCH_REVISION = "v1_clean"
 def experiment_config(path):
     """One formal config; CPU is permitted for checks, not silent 100-epoch training."""
     cfg = load_config(path)
+    if any(key in cfg for key in ('generalization', 'stage6', 'experiment_protocol', 'lambda_identity')):
+        raise ValueError('This A0-only release rejects closed experimental protocols.')
     if cfg.get("arch_revision") != ARCH_REVISION:
         raise ValueError("Expected arch_revision=v1_clean; legacy architectures/configurations are incompatible.")
     if cfg["epochs"] != 100 or cfg["early_stopping"]:

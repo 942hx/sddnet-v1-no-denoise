@@ -27,6 +27,19 @@ def test_protected_output_rejected_without_writes(destination):
     with pytest.raises(ValueError):output_path(destination)
 
 
+@pytest.mark.parametrize('destination',[
+    'DATA/x','Data/x','CACHE/x','Results/A0_best88/x','.GIT/index',
+    '.Agents/x','.CODEX/x','.AWS/x','data./x','results /x',
+    'outputs/.. /outside','outputs/file:stream'])
+def test_windows_case_and_aliases_cannot_bypass_protected_output(destination):
+    with pytest.raises(ValueError):output_path(destination)
+
+
+def test_normal_chinese_and_internal_spaces_output_still_valid():
+    path=output_path('outputs/中文 空格/增强')
+    assert path.relative_to(PROJECT_ROOT).parts==('outputs','中文 空格','增强')
+
+
 def test_existing_output_rejected_and_evidence_unchanged(tmp_path):
     path=tmp_path/'existing';path.mkdir();evidence=path/'metrics.csv';evidence.write_bytes(b'original\r\n')
     with pytest.raises(FileExistsError):new_output(path)
